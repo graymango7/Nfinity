@@ -16,7 +16,7 @@
 """
 from datetime import timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -191,8 +191,10 @@ def get_summary(user_id: str, period: str = "month", db: Session = Depends(get_d
 
 
 @router.get("/events", response_model=list[IncomeEvent])
-def get_events(user_id: str, limit: int = 20, db: Session = Depends(get_db)):
-    """최근 수입 이벤트 목록 (연결된 플랫폼만, 최신순)."""
+def get_events(user_id: str, limit: int = Query(20, ge=1, le=200), db: Session = Depends(get_db)):
+    """최근 수입 이벤트 목록 (연결된 플랫폼만, 최신순).
+
+    9/5 수정: limit에 음수가 들어오면 Postgres LIMIT에서 500이 나던 걸 Query(1~200)로 막습니다."""
     rows = db.execute(
         text(
             """

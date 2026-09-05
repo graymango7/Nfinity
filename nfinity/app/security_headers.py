@@ -49,22 +49,32 @@ _CSP = (
 )
 
 
+def is_https_request(request: Request) -> bool:
+    return request.url.scheme == "https" or request.headers.get(
+        "x-forwarded-proto", ""
+    ).lower() == "https"
+
+
+def build_security_headers(is_https: bool) -> dict[str, str]:
+    """모든 응답에 붙일 보안 헤더 묶음. 미들웨어와, 처리되지 않은 예외를 잡는
+    500 핸들러(app/main.py)가 함께 씁니다 — 아래 미들웨어는 BaseHTTPMiddleware라
+    안쪽에서 예외가 터진 500 응답에는 실행되지 않기 때문에, 그 경로에서도 같은
+    헤더가 빠지지 않도록 함수로 분리했습니다."""
+    headers = {
+        "X-Content-Type-Options": "nosniff",
+        "X-Frame-Options": "DENY",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=()",
+        "Content-Security-Policy": _CSP,
+    }
+    if is_https:
+        headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    return headers
+
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = (
-            "geolocation=(), microphone=(), camera=(), payment=()"
-        )
-        response.headers["Content-Security-Policy"] = _CSP
-
-        is_https = request.url.scheme == "https" or request.headers.get(
-            "x-forwarded-proto", ""
-        ).lower() == "https"
-        if is_https:
-            response.headers["Strict-Transport-Security"] = (
-                "max-age=31536000; includeSubDomains"
-            )
+        for key, value in build_security_headers(is_https_request(request)).items():
+            response.headers[key] = value
         return response

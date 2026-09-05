@@ -5,9 +5,8 @@
 - GET  /api/v1/risk/score/{user_id} : 유저의 최근 리스크 점수 조회
 """
 from datetime import datetime, timedelta
-from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -177,22 +176,36 @@ def assess_transaction(txn: Transaction, db: Session = Depends(get_db)):
 
 
 @router.get("/events")
-def list_risk_events(user_id: Optional[str] = None, limit: int = 50, db: Session = Depends(get_db)):
+def list_risk_events(
+    user_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+):
     """
     8/30: 프론트(리스크 타임라인 화면)가 가맹점명/금액도 같이 보여줘야 해서, transactions와
     LEFT JOIN해서 merchant_name/amount/timestamp도 같이 내려줍니다 (risk_events 자체엔
     없는 컬럼이라, 이전엔 rule_id/severity만으로는 "무슨 거래였는지" 알 수 없었습니다).
+
+    9/5 보안 수정: 예전에는 user_id가 선택값이라 아예 안 넘기면 미들웨어(app/demo_guard.py)의
+    user_id 검사를 우회해서 "전체 유저의 risk_events"가 무인증으로 통째로 조회됐습니다
+    (데모 3명이 아닌 시드 유저까지 포함 — 전형적인 IDOR). user_id를 필수로 바꾸고, 여기서도
+    직접 데모 페르소나 화이트리스트로 한 번 더 막습니다. limit도 음수/과대값이 들어오면
+    Postgres LIMIT에서 500이 나던 걸 Query 제약(1~200)으로 막습니다.
     """
+    from app.demo_guard import allowed_user_ids
+
+    if user_id not in allowed_user_ids():
+        raise HTTPException(
+            status_code=403,
+            detail="이 시연 배포는 공개된 데모 계정의 데이터만 조회할 수 있습니다.",
+        )
+
     query = (
         "SELECT re.*, t.merchant_name, t.amount AS transaction_amount, t.timestamp AS transaction_timestamp "
         "FROM risk_events re LEFT JOIN transactions t ON t.transaction_id = re.transaction_id "
+        "WHERE re.user_id = :uid ORDER BY re.created_at DESC LIMIT :limit"
     )
-    if user_id:
-        query += "WHERE re.user_id = :uid ORDER BY re.created_at DESC LIMIT :limit"
-        rows = db.execute(text(query), {"uid": user_id, "limit": limit}).mappings().all()
-    else:
-        query += "ORDER BY re.created_at DESC LIMIT :limit"
-        rows = db.execute(text(query), {"limit": limit}).mappings().all()
+    rows = db.execute(text(query), {"uid": user_id, "limit": limit}).mappings().all()
     return [dict(r) for r in rows]
 
 

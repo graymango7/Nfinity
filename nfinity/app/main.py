@@ -40,7 +40,11 @@ from app.keepalive import start as start_keepalive
 from app.rate_limit import RateLimitMiddleware
 from app.redis_client import ping as redis_ping
 from app.routers import budgets, demo, expense, gig_score, income, risk, shield, tax
-from app.security_headers import SecurityHeadersMiddleware
+from app.security_headers import (
+    SecurityHeadersMiddleware,
+    build_security_headers,
+    is_https_request,
+)
 from app.startup_seed import run_startup_seed
 
 app = FastAPI(
@@ -130,6 +134,22 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
             }
         },
     )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """9/5 추가: 위 두 핸들러가 잡지 못한 "예상 못 한" 예외(예: 잘못된 쿼리로 DB가 던지는
+    오류)까지 항상 같은 {"error": {...}} 포맷으로 내보냅니다. 이전에는 이런 500이 Starlette
+    기본 처리로 빠져서 (1) 응답 포맷이 맨 'Internal Server Error' 문자열이었고 (2)
+    SecurityHeadersMiddleware가 실행되지 않아 CSP 등 보안 헤더가 통째로 빠졌습니다. 실제
+    원인/스택트레이스는 서버 로그로만 남기고, 응답 본문에는 노출하지 않습니다."""
+    resp = JSONResponse(
+        status_code=500,
+        content={"error": {"code": 500, "message": "서버 내부 오류가 발생했습니다."}},
+    )
+    for key, value in build_security_headers(is_https_request(request)).items():
+        resp.headers[key] = value
+    return resp
 
 
 @app.get("/health", tags=["health"])

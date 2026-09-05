@@ -356,6 +356,15 @@
 (function () {
   "use strict";
   var API = "/api/v1";
+  // 9/5: 배포 서버에서 API_ACCESS_KEY(app/security.py)를 켰다면, 이 값에 같은 키를 넣어
+  // 다시 배포하세요. 비어 있으면(로컬/기본 데모) 헤더를 안 붙입니다. 이걸 넣기 전엔
+  // 프론트가 인증 헤더를 아예 안 보내서, 서버 키만 켜면 데모 전체가 401로 죽었습니다.
+  var API_KEY = "";
+  function authHeaders(base) {
+    base = base || {};
+    if (API_KEY) base["X-API-Key"] = API_KEY;
+    return base;
+  }
   var state = { personas: [], userId: null, persona: null, scenarios: null, shield: null,
                tax: null, sources: [], budgets: [], scenarioKey: "기본", pane: "cash" };
 
@@ -374,7 +383,7 @@
   function el(id) { return document.getElementById(id); }
   function fail(id, msg) { el(id).innerHTML = '<div class="err">' + escapeHtml(msg) + "</div>"; }
   function get(path) {
-    return fetch(API + path, { headers: { Accept: "application/json" } }).then(function (r) {
+    return fetch(API + path, { headers: authHeaders({ Accept: "application/json" }) }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
@@ -735,7 +744,7 @@
   function send(method, path, body) {
     return fetch(API + path, {
       method: method,
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers: authHeaders({ "Content-Type": "application/json", Accept: "application/json" }),
       body: body ? JSON.stringify(body) : undefined
     }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);

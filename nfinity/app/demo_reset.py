@@ -22,6 +22,12 @@
 - income_sources.connected 를 scripts/seed_demo_income.py의 설정값으로 복원
 - risk_events 중 transaction_id가 NULL인 행 삭제 — 실제 거래에 붙은 시드 이벤트는 모두
   transaction_id를 갖고 있고, 화면에서 즉석 검사로 만들어진 평가만 NULL입니다.
+- user_settings.min_safety_balance 를 NULL(=기본값)로 복원 — PUT /shield/{uid}/settings로
+  누군가 바꿔둔 최소 안전잔액이 다음 관람자에게 그대로 남지 않도록.
+- Redis 예산 지출 카운터를 시드값으로 복원 — POST /budgets/record-spending은 Redis에
+  INCRBYFLOAT로 누적만 하고 되돌리지 않아서(TTL 40일), 몇 번만 눌러도 예산 사용률이
+  실제 거래와 무관하게 부풀려진 채 다음 관람자에게 남습니다. 시드와 같은 방식으로
+  (해당 키 삭제 후 실제 거래 합계로 다시 채움) 정확한 값으로 되돌립니다.
 
 주기를 30분으로 잡은 이유: 한 사람이 둘러보는 동안(보통 몇 분)에는 자기가 만든 변화가
 그대로 남아 있어야 조작한 보람이 있고, 그 사람이 떠난 뒤 다음 사람은 온전한 데모를
@@ -68,6 +74,15 @@ def reset_demo_state() -> dict:
         # 즉석 검사로 생긴 평가만 지웁니다(시드 이벤트는 transaction_id가 있습니다).
         res = db.execute(text("DELETE FROM risk_events WHERE transaction_id IS NULL"))
         deleted = res.rowcount or 0
+
+        # 화면에서 바꿔둔 최소 안전잔액을 기본값으로 되돌립니다(NULL이면 get_shield가
+        # DEFAULT_MIN_SAFETY_BALANCE로 폴백). current_balance는 시드값이라 건드리지 않습니다.
+        for uid in demo_ids:
+            db.execute(
+                text("UPDATE user_settings SET min_safety_balance = NULL WHERE user_id = :uid"),
+                {"uid": uid},
+            )
+
         db.commit()
         if restored or deleted:
             logger.info("[demo_reset] 연결 상태 %d건 복원, 즉석 평가 %d건 정리", restored, deleted)
@@ -76,4 +91,32 @@ def reset_demo_state() -> dict:
         logger.exception("[demo_reset] 복원 중 오류가 발생했습니다.")
     finally:
         db.close()
+
+    # Redis 예산 지출 복원은 별도 트랜잭션/연결이라 위 DB 작업과 분리해서, 하나가 실패해도
+    # 다른 하나는 되돌아가도록 합니다(시드 스크립트의 로직을 그대로 재사용).
+    _reset_demo_spending()
+
     return {"restored": restored, "deleted_events": deleted}
+
+
+def _reset_demo_spending() -> None:
+    """데모 페르소나의 Redis 예산 지출 카운터를 시드 상태(실제 거래 합계)로 되돌립니다.
+    seed_demo_personas의 로직을 그대로 재사용합니다 — 먼저 해당 budget:* 키를 삭제하고,
+    실제 mock 거래를 카테고리별로 합산해 다시 채우므로 재호출해도 값이 정확합니다."""
+    from app.database import SessionLocal
+
+    try:
+        from scripts.seed_demo_personas import _reset_demo_redis_keys, seed_budgets_and_spending
+    except Exception:
+        logger.exception("[demo_reset] 예산 시드 로직을 불러오지 못해 지출 복원을 건너뜁니다.")
+        return
+
+    try:
+        _reset_demo_redis_keys()
+        db = SessionLocal()
+        try:
+            seed_budgets_and_spending(db)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("[demo_reset] Redis 예산 지출 복원 중 오류가 발생했습니다.")

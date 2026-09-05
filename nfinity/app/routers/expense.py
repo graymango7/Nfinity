@@ -16,7 +16,7 @@ JOB_CONTEXT_MERCHANTS 판단("개발자"/"마케터" 문자열 포함 여부)과
 Mock/실제 API 전환은 이 파일이 아니라 data_pipeline/expense_classifier.py의 MOCK_MODE가
 결정합니다 (.env에 GEMINI_API_KEY가 있으면 자동으로 실제 Gemini 호출로 전환).
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -41,8 +41,11 @@ router = APIRouter(prefix="/api/v1/expense", tags=["expense"], dependencies=[Dep
 
 
 @router.get("/classify", response_model=ExpenseClassifyResponse)
-def classify_expense(user_id: str, limit: int = 15, db: Session = Depends(get_db)):
-    """해당 유저의 최근 거래 <limit>건을 실제로 분류해서 스와이프 큐로 반환합니다."""
+def classify_expense(user_id: str, limit: int = Query(15, ge=1, le=50), db: Session = Depends(get_db)):
+    """해당 유저의 최근 거래 <limit>건을 실제로 분류해서 스와이프 큐로 반환합니다.
+
+    9/5 수정: limit 음수는 Postgres LIMIT에서 500을 냈고, 과대값은 실제 Gemini 키가 붙은
+    배포에서 LLM 호출이 폭증하므로 Query(1~50)로 제한합니다."""
     user_row = db.execute(
         text("SELECT persona FROM users WHERE user_id = :uid"),
         {"uid": user_id},
