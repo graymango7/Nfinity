@@ -163,19 +163,37 @@ def estimate_health_insurance(annual_income: float, has_employment_income: bool 
     care_monthly = health_monthly * LONG_TERM_CARE_RATE
     total_monthly = health_monthly + care_monthly
 
-    # 피부양자 경계 경고: 연 2,000만원을 넘으면 자격을 잃고 보험료를 직접 내야 합니다.
+    # 2,000만원 경계 경고.
+    #
+    # 이 경계는 N잡러에게 두 가지로 작동합니다. 직장가입자는 급여 외 소득이 이 선을 넘는
+    # 순간부터 소득월액보험료가 새로 생기고(회사 지원 없이 전액 본인 부담), 피부양자는
+    # 자격을 잃고 보험료를 직접 내게 됩니다. 둘 다 "넘고 나서" 고지서로 알게 되는 게
+    # 보통이라, 넘기 전에 남은 여유가 얼마인지 알려주는 게 이 서비스의 핵심 가치입니다.
     dependent_lost = income > DEPENDENT_INCOME_LIMIT
+    headroom = DEPENDENT_INCOME_LIMIT - income
     ratio = income / DEPENDENT_INCOME_LIMIT if DEPENDENT_INCOME_LIMIT else 0
+
+    def _man(v: float) -> str:
+        return format(int(round(v / 10000)), ",") + "만원"
+
     if dependent_lost:
+        if has_employment_income:
+            warning = (
+                "급여 외 소득이 2,000만원을 넘어 소득월액보험료 대상입니다. "
+                "초과분 " + _man(income - DEPENDENT_INCOME_LIMIT) + "에 대한 보험료는 "
+                "회사 지원 없이 전액 본인이 부담합니다."
+            )
+        else:
+            warning = (
+                "연 소득이 2,000만원을 넘어 피부양자 자격 기준을 초과합니다. "
+                "피부양자였다면 자격을 잃고 보험료를 직접 부담하게 됩니다."
+            )
+    elif ratio >= 0.6:
         warning = (
-            "연 소득이 2,000만원을 넘어 피부양자 자격 기준을 초과합니다. "
-            "피부양자였다면 자격을 잃고 보험료를 직접 부담하게 됩니다."
-        )
-    elif ratio >= 0.85:
-        warning = (
-            "연 소득이 피부양자 기준(2,000만원)의 "
-            + str(int(ratio * 100))
-            + "%입니다. 지금 속도로 벌면 올해 안에 기준을 넘길 수 있습니다."
+            "앞으로 " + _man(headroom) + "을 더 벌면 2,000만원 기준을 넘습니다"
+            + ("(현재 기준의 " + str(int(ratio * 100)) + "%). 넘는 순간 소득월액보험료가 새로 생깁니다."
+               if has_employment_income
+               else "(현재 기준의 " + str(int(ratio * 100)) + "%). 넘으면 피부양자 자격을 잃습니다.")
         )
     else:
         warning = None
@@ -190,6 +208,8 @@ def estimate_health_insurance(annual_income: float, has_employment_income: bool 
         "annual_total": round(total_monthly * 12),
         "dependent_limit": DEPENDENT_INCOME_LIMIT,
         "dependent_limit_exceeded": dependent_lost,
+        "dependent_limit_headroom": round(max(0.0, headroom)),
+        "dependent_limit_ratio": round(ratio, 3),
         "warning": warning,
         "note": note,
     }

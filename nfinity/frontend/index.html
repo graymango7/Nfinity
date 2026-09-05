@@ -73,6 +73,35 @@
   .pagehead h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
   .pagehead .sub { color: var(--text-muted); font-size: 15px; margin-top: 6px; }
 
+  /* 1단 요약 */
+  .hero { background: #fff; border-radius: 20px; padding: 30px 32px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .hero-who { font-size: 14px; color: var(--text-muted); font-weight: 600; }
+  .hero-line { font-size: 30px; font-weight: 700; letter-spacing: -0.04em; line-height: 1.35; margin: 8px 0 22px; }
+  .hero-line b { color: var(--accent); }
+  .hero-line b.risk { color: var(--danger); }
+  .hero-stats { display: flex; gap: 40px; flex-wrap: wrap; }
+  .hero-stats .st .k { font-size: 13px; color: var(--text-muted); }
+  .hero-stats .st .v { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; margin-top: 3px; }
+
+  /* 2단 할 일 */
+  .todos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+  @media (max-width: 1080px) { .todos { grid-template-columns: minmax(0, 1fr); } }
+  .todo { background: #fff; border-radius: 14px; padding: 18px 20px; display: flex; gap: 13px;
+    align-items: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .todo .ic { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center;
+    font-size: 17px; flex: none; }
+  .todo .tt { font-size: 14.5px; font-weight: 700; letter-spacing: -0.02em; }
+  .todo .ds { font-size: 13px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
+  .todo .act { margin-top: 10px; }
+
+  /* 3단 탭 */
+  .maintabs { display: flex; gap: 4px; margin: 32px 0 16px; border-bottom: 1px solid var(--border); }
+  .maintab { border: 0; background: none; font-family: inherit; font-size: 16px; font-weight: 700;
+    letter-spacing: -0.02em; color: var(--text-faint); padding: 10px 14px 14px; cursor: pointer;
+    border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .maintab[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); }
+  .maintab:hover { color: var(--text-muted); }
+
   .section { margin-top: 40px; }
   .section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .section-head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
@@ -189,37 +218,38 @@
 <!-- ===== 2) 대시보드 ===== -->
 <div id="viewDash" hidden>
   <div class="page">
-    <div class="pagehead">
-      <h1 id="userName">—</h1>
-      <div class="sub" id="userTagline"></div>
+    <!-- 1단: 지금 상태 한 문장 + 핵심 숫자. 스크롤 없이 이 서비스가 무엇을 말해주는지 끝냅니다. -->
+    <div class="hero">
+      <div class="hero-who" id="heroWho">—</div>
+      <div class="hero-line" id="heroLine">불러오는 중…</div>
+      <div class="hero-stats" id="heroStats"></div>
     </div>
 
-    <!-- 현금흐름 -->
-    <div class="section">
-      <div class="section-head">
-        <h2>현금흐름</h2>
-        <span class="desc">정산 주기와 정기 지출을 학습해 앞으로 45일을 시뮬레이션합니다</span>
-        <span class="right"><div class="tabs" id="scenarioTabs" role="tablist"></div></span>
-      </div>
+    <!-- 2단: 지금 하면 좋은 일. 읽기만 하는 대시보드가 아니라 행동으로 이어지게 합니다. -->
+    <div class="todos" id="todos"></div>
+
+    <!-- 3단: 상세. 한 화면에 다 쌓지 않고 탭으로 나눕니다. -->
+    <nav class="maintabs" id="mainTabs" role="tablist"></nav>
+
+    <div id="pane-cash">
       <div class="grid row-hero">
         <div class="card">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+            <div class="card-title" style="margin:0">45일 현금흐름 예측</div>
+            <div class="right" style="margin-left:auto"><div class="tabs" id="scenarioTabs" role="tablist"></div></div>
+          </div>
           <div id="shieldSummary"></div>
           <div id="chartWrap"><div class="skeleton">불러오는 중…</div></div>
           <div class="legend" id="chartLegend"></div>
         </div>
         <div class="card">
-          <div class="card-title">세금 · 건보료 파킹</div>
+          <div class="card-title">세금 · 건강보험료 전망</div>
           <div id="parking"><div class="skeleton">불러오는 중…</div></div>
         </div>
       </div>
     </div>
 
-    <!-- 수입 -->
-    <div class="section">
-      <div class="section-head">
-        <h2>수입</h2>
-        <span class="desc">플랫폼별 정산 내역과 이를 신용 지표로 환산한 점수</span>
-      </div>
+    <div id="pane-income" hidden>
       <div class="grid row-2">
         <div class="card">
           <div class="card-title">플랫폼별 수입 <span class="label" id="incomePeriod"></span></div>
@@ -233,12 +263,7 @@
       </div>
     </div>
 
-    <!-- 지출 관리 -->
-    <div class="section">
-      <div class="section-head">
-        <h2>지출 관리</h2>
-        <span class="desc">카테고리별 예산 사용률과 업무경비 자동 분류</span>
-      </div>
+    <div id="pane-spend" hidden>
       <div class="grid row-2">
         <div class="card">
           <div class="card-title">이번 달 예산</div>
@@ -251,46 +276,38 @@
       </div>
     </div>
 
-    <!-- 거래 보안 -->
-    <div class="section">
-      <div class="section-head">
-        <h2>거래 보안</h2>
-        <span class="desc">규칙 엔진 7종 + Isolation Forest 이상탐지 앙상블</span>
-        <span class="right" id="riskBadge"></span>
-      </div>
+    <div id="pane-sec" hidden>
       <div class="grid row-2">
         <div class="card">
           <div class="card-title">거래 위험도 즉시 검사</div>
-          <div class="label" style="margin-bottom:12px">
+          <div class="label" style="margin-bottom:14px">
             결제 정보를 넣으면 규칙 엔진 7종과 이상탐지 모델이 함께 판정합니다.
-            판정 결과는 이 사용자의 탐지 이력에 실제로 기록됩니다.
+            결과는 이 사용자의 탐지 이력에 실제로 기록됩니다.
           </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px" id="assessPresets"></div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px" id="assessPresets"></div>
           <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px">
             <div class="field"><label for="afMerchant">가맹점</label>
               <input type="text" id="afMerchant" value="스타벅스 강남점"></div>
             <div class="field"><label for="afAmount">금액 (원)</label>
               <input type="number" id="afAmount" value="5600" min="0" step="100"></div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
-            <div class="field"><label for="afHour">결제 시각</label>
-              <select id="afHour"></select></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+            <div class="field"><label for="afHour">결제 시각</label><select id="afHour"></select></div>
             <div class="field"><label for="afCountry">결제 국가</label>
-              <select id="afCountry">
-                <option value="KR">대한민국</option><option value="US">미국</option>
-                <option value="JP">일본</option><option value="CN">중국</option>
-              </select></div>
+              <select id="afCountry"><option value="KR">대한민국</option><option value="US">미국</option>
+                <option value="JP">일본</option><option value="CN">중국</option></select></div>
             <div class="field"><label for="afDevice">결제 기기</label>
-              <select id="afDevice">
-                <option value="known">평소 쓰던 기기</option>
-                <option value="new">처음 보는 기기</option>
-              </select></div>
+              <select id="afDevice"><option value="known">평소 쓰던 기기</option>
+                <option value="new">처음 보는 기기</option></select></div>
           </div>
-          <button class="btn btn-primary" id="assessBtn">위험도 검사</button>
-          <div id="assessResult" style="margin-top:14px"></div>
+          <button class="btn btn-primary" id="assessBtn" style="width:100%">위험도 검사</button>
+          <div id="assessResult" style="margin-top:16px"></div>
         </div>
         <div class="card">
-          <div class="card-title">탐지 이력</div>
+          <div style="display:flex;align-items:baseline;margin-bottom:14px">
+            <div class="card-title" style="margin:0">탐지 이력</div>
+            <span style="margin-left:auto" id="riskBadge"></span>
+          </div>
           <div id="risk"><div class="skeleton">불러오는 중…</div></div>
         </div>
       </div>
@@ -304,7 +321,8 @@
 (function () {
   "use strict";
   var API = "/api/v1";
-  var state = { personas: [], userId: null, scenarios: null, shield: null, scenarioKey: "기본" };
+  var state = { personas: [], userId: null, persona: null, scenarios: null, shield: null,
+               tax: null, sources: [], budgets: [], scenarioKey: "기본", pane: "cash" };
 
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -489,38 +507,6 @@
     renderScenarioTabs();
     renderChart();
 
-    el("parking").innerHTML =
-      '<div class="label">수입 변동성에 맞춘 권장 준비금</div>' +
-      '<div class="metric num" style="margin:2px 0 14px">' + won(sh.recommended_reserve) + "</div>" +
-      '<div class="kv"><span class="label">종합소득세 대비</span><span class="num">' + won(sh.tax_reserve) + "</span></div>" +
-      '<div class="kv"><span class="label">건강보험료 대비</span><span class="num">' + won(sh.insurance_reserve) + "</span></div>" +
-      '<div class="kv"><span class="label">수입 변동계수</span><span class="num">' +
-        (sh.income_variability != null ? sh.income_variability.toFixed(2) : "—") + "</span></div>" +
-      '<div class="muted-box" style="margin-top:14px">수입이 들쭉날쭉할수록 준비금을 더 넉넉히 잡습니다. ' +
-      "확정 세액·보험료가 아니라 미리 떼어둘 금액의 간이 추정치입니다.</div>" +
-      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' +
-        '<label class="label" for="safetyInput">최소 안전잔액 (이 밑으로 떨어지면 경고)</label>' +
-        '<div style="display:flex;gap:8px;margin-top:6px">' +
-          '<input type="number" id="safetyInput" step="50000" min="0" value="' +
-            Math.round(sh.min_safety_balance) + '">' +
-          '<button class="btn btn-outline btn-sm" id="safetyBtn" style="white-space:nowrap">적용</button>' +
-        "</div></div>";
-
-    el("safetyBtn").addEventListener("click", function () {
-      var v = Number(el("safetyInput").value);
-      if (!(v >= 0)) return;
-      var btn = el("safetyBtn");
-      btn.disabled = true; btn.textContent = "…";
-      // 서버에 실제로 저장하고, 저장된 값으로 시뮬레이션을 다시 받아 화면을 갱신합니다.
-      send("PUT", "/shield/" + state.userId + "/settings", { min_safety_balance: v })
-        .then(function () { return Promise.all([get("/shield/" + state.userId), get("/shield/" + state.userId + "/scenarios")]); })
-        .then(function (r) {
-          state.scenarios = r[1];
-          renderShield(r[0]);
-          toast("최소 안전잔액을 " + won(v) + "으로 저장했습니다. 예측을 다시 계산했습니다.");
-        })
-        .catch(function () { btn.disabled = false; btn.textContent = "적용"; toast("저장하지 못했습니다."); });
-    });
   }
 
   function renderIncome(sum) {
@@ -601,6 +587,108 @@
     }).join("") + "</div>";
   }
 
+  // ---------- 1단: 요약 ----------
+  /** 이 사람의 상태를 한 문장으로 압축합니다. 사용자가 앱을 켜서 가장 먼저 묻는 질문
+   *  ("나 지금 괜찮나?")에 스크롤 없이 답하는 자리입니다. */
+  function renderHero() {
+    var sh = state.shield, cur = state.persona;
+    if (!sh) return;
+    el("heroWho").textContent = cur ? cur.name + " · " + cur.job : "";
+
+    var line;
+    if (sh.minimum_balance_date) {
+      var d = String(sh.minimum_balance_date).slice(5).split("-");
+      var days = Math.round((new Date(sh.minimum_balance_date) - new Date(String(sh.calculated_at).slice(0, 10))) / 86400000);
+      line = '<b class="risk">' + Number(d[0]) + "월 " + Number(d[1]) + "일</b>, " + days +
+             "일 뒤에 잔고가 " + manwon(sh.min_safety_balance) + "원 아래로 떨어질 것 같아요";
+    } else {
+      line = "앞으로 45일은 <b>잔고 걱정 없이</b> 지낼 수 있어요";
+    }
+    el("heroLine").innerHTML = line;
+
+    // 다음 입금 예정: 시뮬레이션에 잡힌 첫 수입 이벤트
+    var next = null;
+    for (var i = 0; i < (sh.daily_balances || []).length; i++) {
+      var p = sh.daily_balances[i];
+      if (p.events && p.events.some(function (e) { return e.indexOf("수입") >= 0; })) { next = p; break; }
+    }
+    var nextText = "예정 없음";
+    if (next) {
+      var m = /\+([\d,]+)원/.exec(next.events.join(" "));
+      nextText = mmdd(next.date) + (m ? " · " + m[1] + "원" : "");
+    }
+    el("heroStats").innerHTML =
+      '<div class="st"><div class="k">현재 잔액</div><div class="v num">' + won(sh.current_balance) + "</div></div>" +
+      '<div class="st"><div class="k">세금·건보료 빼고 쓸 수 있는 돈</div><div class="v num">' + won(sh.available_cash) + "</div></div>" +
+      '<div class="st"><div class="k">다음 입금</div><div class="v num">' + escapeHtml(nextText) + "</div></div>";
+  }
+
+  // ---------- 2단: 할 일 ----------
+  /** 각 카드가 "지금 하면 좋은 것" 하나씩입니다. 우선순위가 높은 3개만 보여줍니다. */
+  function renderTodos() {
+    var items = [];
+    var sh = state.shield, tax = state.tax, sources = state.sources || [], budgets = state.budgets || [];
+
+    var pending = sources.filter(function (s) { return !s.connected; });
+    if (pending.length) {
+      items.push({
+        pri: 1, icon: "🔗", tone: "accent",
+        title: pending[0].platform_name + " 연결하기",
+        desc: "연결하면 이 수입까지 반영해서 예측이 더 정확해져요.",
+        action: '<button class="btn btn-primary btn-sm" data-connect="' + escapeHtml(pending[0].source_id) + '">연결하기</button>'
+      });
+    }
+    if (tax && tax.health_insurance && tax.health_insurance.warning) {
+      items.push({ pri: 2, icon: "🏥", tone: "warn", title: "건강보험료 주의", desc: tax.health_insurance.warning });
+    }
+    if (tax && tax.income_tax) {
+      var bal = tax.income_tax.balance_due;
+      items.push(bal < 0
+        ? { pri: 3, icon: "💰", tone: "safe", title: "5월에 " + won(-bal) + " 돌려받아요",
+            desc: "3.3% 원천징수가 실제 세금보다 많이 떼였습니다. 종합소득세 신고를 하면 환급됩니다." }
+        : { pri: 1, icon: "💸", tone: "warn", title: "세금 " + won(bal) + " 준비하세요",
+            desc: "5월 신고 때 낼 돈이에요. 매달 " + won(tax.income_tax.monthly_reserve) + "씩 떼어두면 됩니다." });
+    }
+    var over = budgets.filter(function (b) { return (b.usage_rate || 0) >= 1; });
+    if (over.length) {
+      items.push({ pri: 2, icon: "📊", tone: "warn", title: over.length + "개 예산 초과",
+        desc: over.map(function (b) { return b.category; }).join(", ") + " 한도를 넘었어요." });
+    }
+    if (sh && sh.risk_level !== "안전") {
+      items.push({ pri: 2, icon: "⚠️", tone: "warn", title: "현금흐름 " + sh.risk_level,
+        desc: (sh.risk_reasons || [])[0] || "" });
+    }
+
+    items.sort(function (a, b) { return a.pri - b.pri; });
+    var bg = { accent: "var(--accent-soft)", warn: "var(--warn-soft)", safe: "var(--safe-soft)" };
+    el("todos").innerHTML = items.slice(0, 3).map(function (t) {
+      return '<div class="todo"><div class="ic" style="background:' + bg[t.tone] + '">' + t.icon + "</div>" +
+        '<div><div class="tt">' + escapeHtml(t.title) + '</div><div class="ds">' + escapeHtml(t.desc) + "</div>" +
+        (t.action ? '<div class="act">' + t.action + "</div>" : "") + "</div></div>";
+    }).join("");
+
+    var cb = el("todos").querySelector("button[data-connect]");
+    if (cb) cb.addEventListener("click", function () { connectSource(cb.getAttribute("data-connect"), cb); });
+  }
+
+  // ---------- 3단: 탭 ----------
+  var PANES = [["cash", "현금흐름"], ["income", "수입"], ["spend", "지출"], ["sec", "거래 보안"]];
+  function renderMainTabs() {
+    el("mainTabs").innerHTML = PANES.map(function (p) {
+      return '<button class="maintab" role="tab" data-p="' + p[0] + '" aria-selected="' +
+        (p[0] === state.pane) + '">' + p[1] + "</button>";
+    }).join("");
+    PANES.forEach(function (p) { el("pane-" + p[0]).hidden = p[0] !== state.pane; });
+    Array.prototype.forEach.call(el("mainTabs").querySelectorAll(".maintab"), function (b) {
+      b.addEventListener("click", function () {
+        state.pane = b.getAttribute("data-p");
+        renderMainTabs();
+        // 차트는 숨겨진 동안 폭을 0으로 계산하므로, 보이게 된 뒤 다시 그립니다.
+        if (state.pane === "cash") renderChart();
+      });
+    });
+  }
+
   // ---------- 쓰기 동작 (실제로 서버 상태를 바꿉니다) ----------
   function send(method, path, body) {
     return fetch(API + path, {
@@ -648,27 +736,91 @@
       }).join("") + "</div>";
 
     Array.prototype.forEach.call(el("sources").querySelectorAll("button[data-sid]"), function (b) {
-      b.addEventListener("click", function () {
-        var sid = b.getAttribute("data-sid");
-        b.disabled = true; b.textContent = "연결 중…";
-        send("POST", "/income/sources/" + sid + "/connect?user_id=" + state.userId)
-          .then(function (res) {
-            toast(res.platform_name + " 연결 완료 — 정산 내역 " + res.revealed_event_count +
-                  "건을 찾았습니다. 현금흐름 예측을 다시 계산합니다.");
-            return loadIncome(state.userId).then(function () {
-              return Promise.all([get("/shield/" + state.userId), get("/shield/" + state.userId + "/scenarios")]);
-            });
-          })
-          .then(function (r) { state.scenarios = r[1]; renderShield(r[0]); })
-          .catch(function () { b.disabled = false; b.textContent = "연결하기"; toast("연결하지 못했습니다."); });
-      });
+      b.addEventListener("click", function () { connectSource(b.getAttribute("data-sid"), b); });
     });
+  }
+
+  /** 플랫폼을 연결하면 예측에 들어가는 수입이 늘어나므로, 수입·예측·세금·요약을 모두
+   *  다시 불러와 화면 전체를 최신 상태로 맞춥니다. */
+  function connectSource(sid, btn) {
+    btn.disabled = true; btn.textContent = "연결 중…";
+    send("POST", "/income/sources/" + sid + "/connect?user_id=" + state.userId)
+      .then(function (res) {
+        toast(res.platform_name + " 연결 완료 — 정산 내역 " + res.revealed_event_count +
+              "건을 찾았습니다. 예측을 다시 계산합니다.");
+        return Promise.all([
+          loadIncome(state.userId),
+          get("/shield/" + state.userId),
+          get("/shield/" + state.userId + "/scenarios"),
+          get("/tax/estimate/" + state.userId).catch(function () { return null; })
+        ]);
+      })
+      .then(function (r) {
+        state.scenarios = r[2];
+        if (r[3]) { state.tax = r[3]; renderParking(); }
+        renderShield(r[1]);
+        renderHero();
+        renderTodos();
+      })
+      .catch(function () { btn.disabled = false; btn.textContent = "연결하기"; toast("연결하지 못했습니다."); });
   }
 
   function loadIncome(uid) {
     return Promise.all([get("/income/summary?user_id=" + uid), get("/income/sources?user_id=" + uid)])
-      .then(function (r) { renderIncome(r[0]); renderSources(r[1]); })
+      .then(function (r) { state.sources = r[1]; renderIncome(r[0]); renderSources(r[1]); })
       .catch(function () { fail("income", "수입 정보를 불러오지 못했습니다."); });
+  }
+
+  /** 세금·건강보험료 전망 카드. app/tax.py의 실제 산식 결과를 그대로 보여줍니다. */
+  function renderParking() {
+    var t = state.tax, sh = state.shield;
+    if (!t) {
+      el("parking").innerHTML = '<div class="skeleton">연결된 수입 플랫폼이 없어 추정할 수 없습니다.</div>';
+      return;
+    }
+    var it = t.income_tax, h = t.health_insurance, bal = it.balance_due;
+    el("parking").innerHTML =
+      '<div class="label">내년 5월 종합소득세</div>' +
+      '<div class="metric num" style="margin:2px 0 4px;color:' + (bal < 0 ? "var(--safe)" : "var(--text)") + '">' +
+        (bal < 0 ? "+" + won(-bal) : won(bal)) + "</div>" +
+      '<div class="label" style="margin-bottom:16px">' +
+        (bal < 0 ? "돌려받을 것으로 보여요" : "매달 " + won(it.monthly_reserve) + "씩 모으면 됩니다") + "</div>" +
+      '<div class="kv"><span class="label">연 사업소득(환산)</span><span class="num">' + won(it.annual_income) + "</span></div>" +
+      '<div class="kv"><span class="label">필요경비 ' + Math.round(it.expense_rate * 100) + "%</span><span class=\"num\">−" +
+        won(it.necessary_expense) + "</span></div>" +
+      '<div class="kv"><span class="label">과세표준 · 세율</span><span class="num">' + won(it.tax_base) +
+        " · " + Math.round(it.marginal_rate * 100) + "%</span></div>" +
+      '<div class="kv"><span class="label">산출세액(지방세 포함)</span><span class="num">' + won(it.total_tax) + "</span></div>" +
+      '<div class="kv"><span class="label">이미 낸 원천징수 3.3%</span><span class="num">−' + won(it.prepaid_withholding) + "</span></div>" +
+      '<div style="margin:18px 0 4px;padding-top:16px;border-top:1px solid var(--border)">' +
+        '<div class="label">건강보험료 (' + escapeHtml(h.subscriber_type) + ")</div>" +
+        '<div class="metric-sm num" style="margin-top:2px">월 ' + won(h.total_monthly) + "</div></div>" +
+      (h.warning ? '<div class="muted-box" style="margin-top:12px;background:var(--warn-soft);color:var(--warn)">' +
+        escapeHtml(h.warning) + "</div>" : "") +
+      '<div class="muted-box" style="margin-top:12px">' + escapeHtml(t.disclaimer) + "</div>" +
+      (sh ? '<div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">' +
+        '<label class="label" for="safetyInput">최소 안전잔액 (이 밑으로 떨어지면 경고)</label>' +
+        '<div style="display:flex;gap:8px;margin-top:8px">' +
+          '<input type="number" id="safetyInput" step="50000" min="0" value="' + Math.round(sh.min_safety_balance) + '">' +
+          '<button class="btn btn-outline btn-sm" id="safetyBtn" style="white-space:nowrap">적용</button>' +
+        "</div></div>" : "");
+
+    if (el("safetyBtn")) el("safetyBtn").addEventListener("click", applySafety);
+  }
+
+  function applySafety() {
+    var v = Number(el("safetyInput").value);
+    if (!(v >= 0)) return;
+    var btn = el("safetyBtn");
+    btn.disabled = true; btn.textContent = "…";
+    send("PUT", "/shield/" + state.userId + "/settings", { min_safety_balance: v })
+      .then(function () { return Promise.all([get("/shield/" + state.userId), get("/shield/" + state.userId + "/scenarios")]); })
+      .then(function (r) {
+        state.scenarios = r[1];
+        renderShield(r[0]); renderHero(); renderTodos(); renderParking();
+        toast("최소 안전잔액을 " + won(v) + "으로 저장하고 예측을 다시 계산했습니다.");
+      })
+      .catch(function () { btn.disabled = false; btn.textContent = "적용"; toast("저장하지 못했습니다."); });
   }
 
   /** 거래 위험도 즉시 검사 — POST /risk/assess. 실제 룰 엔진 + Isolation Forest 앙상블을
@@ -750,37 +902,45 @@
   function selectUser(uid) {
     state.userId = uid;
     state.scenarioKey = "기본";
-    state.shield = null;
-    state.scenarios = null;
+    state.pane = "cash";
+    state.shield = null; state.scenarios = null; state.tax = null;
+    state.sources = []; state.budgets = [];
+    state.persona = state.personas.filter(function (p) { return p.user_id === uid; })[0] || null;
 
-    var cur = state.personas.filter(function (p) { return p.user_id === uid; })[0];
-    if (cur) {
-      el("userName").textContent = cur.name + " 님의 대시보드";
-      el("userTagline").textContent = cur.job + " · " + cur.tagline;
-    }
     showDash();
+    renderMainTabs();
     try { history.replaceState(null, "", "?user=" + uid); } catch (e) {}
 
+    el("heroLine").textContent = "불러오는 중…";
+    el("heroStats").innerHTML = ""; el("todos").innerHTML = "";
     ["shieldSummary", "parking", "income", "gig", "budget", "risk", "expense"].forEach(function (id) {
       el(id).innerHTML = '<div class="skeleton">불러오는 중…</div>';
     });
+    el("sources").innerHTML = ""; el("assessResult").innerHTML = "";
     el("chartWrap").innerHTML = '<div class="skeleton">불러오는 중…</div>';
     el("chartLegend").innerHTML = ""; el("riskBadge").innerHTML = "";
-
-    get("/shield/" + uid).then(renderShield).catch(function () {
-      fail("shieldSummary", "현금흐름 예측을 불러오지 못했습니다.");
-      fail("parking", "불러오지 못했습니다."); el("chartWrap").innerHTML = "";
-    });
-    get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () { state.scenarios = null; });
-    el("sources").innerHTML = "";
-    el("assessResult").innerHTML = "";
     setupAssess();
-    loadIncome(uid);
+
+    // 요약과 할 일은 여러 API 결과를 합쳐 만들기 때문에, 각각 도착하는 대로 다시 그립니다.
+    get("/shield/" + uid).then(function (sh) {
+      renderShield(sh); renderHero(); renderTodos(); renderParking();
+    }).catch(function () {
+      fail("shieldSummary", "현금흐름 예측을 불러오지 못했습니다.");
+      el("heroLine").textContent = "현금흐름 예측을 불러오지 못했습니다.";
+      el("chartWrap").innerHTML = "";
+    });
+    get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () {});
+    get("/tax/estimate/" + uid).then(function (t) { state.tax = t; renderParking(); renderTodos(); })
+      .catch(function () { state.tax = null; renderParking(); });
+    loadIncome(uid).then(renderTodos);
     get("/gig-score/" + uid).then(renderGig).catch(function () { fail("gig", "Gig Score를 불러오지 못했습니다."); });
-    get("/budgets/usage?user_id=" + uid + "&period=monthly").then(renderBudget).catch(function () { fail("budget", "예산 정보를 불러오지 못했습니다."); });
+    get("/budgets/usage?user_id=" + uid + "&period=monthly").then(function (rows) {
+      state.budgets = rows; renderBudget(rows); renderTodos();
+    }).catch(function () { fail("budget", "예산 정보를 불러오지 못했습니다."); });
     Promise.all([get("/risk/score/" + uid), get("/risk/events?user_id=" + uid + "&limit=10")])
       .then(function (r) { renderRisk(r[0], r[1]); }).catch(function () { fail("risk", "이상거래 정보를 불러오지 못했습니다."); });
-    get("/expense/classify?user_id=" + uid + "&limit=20").then(renderExpense).catch(function () { fail("expense", "경비 분류를 불러오지 못했습니다."); });
+    get("/expense/classify?user_id=" + uid + "&limit=20").then(renderExpense)
+      .catch(function () { fail("expense", "경비 분류를 불러오지 못했습니다."); });
   }
 
   get("/demo/personas").then(function (d) {
