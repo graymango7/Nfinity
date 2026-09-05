@@ -490,7 +490,9 @@
 
     var days = null;
     if (sh.minimum_balance_date) {
-      days = Math.round((new Date(sh.minimum_balance_date) - new Date(sh.calculated_at)) / 86400000);
+      // 백엔드(app/cashflow.py)는 날짜 단위로만 빼서 "N일 후"를 계산합니다. 여기서 시각까지
+      // 포함해 계산하면 하루 어긋나 보이므로(상단 "34일 후" vs 사유 "35일 후") 날짜만 씁니다.
+      days = Math.round((new Date(sh.minimum_balance_date) - new Date(String(sh.calculated_at).slice(0, 10))) / 86400000);
     }
 
     el("shieldSummary").innerHTML =
