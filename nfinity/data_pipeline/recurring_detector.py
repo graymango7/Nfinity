@@ -25,9 +25,13 @@ from datetime import datetime, timedelta
 # 0. 설정값
 # ------------------------------------------------------------------
 AMOUNT_TOLERANCE = 0.05      # 금액이 이 비율(±5%) 안에서 다르면 "같은 결제"로 취급
-INTERVAL_TARGET_DAYS = 30    # 정기결제라면 대략 이 정도 간격일 것이다 (한 달)
-INTERVAL_TOLERANCE_DAYS = 5  # 25~35일 사이면 "약 30일 간격"으로 인정 (날짜가 매달 조금씩 밀릴 수 있으니)
 MIN_OCCURRENCES = 3          # 최소 3번은 반복돼야 "정기결제"로 인정 (2번은 우연히 겹칠 확률이 높음)
+
+# 9/5 수정: 고정 30일(±5일) 대신 "주기가 일정한가"로 판정합니다 — 아래 detect_recurring_payments
+# 주석 참고. 주간(7일)·격주(14일)·월간(30일) 결제를 모두 잡되 불규칙 결제는 계속 걸러냅니다.
+MIN_INTERVAL_DAYS = 5             # 이보다 촘촘하면 정기결제가 아니라 일상 반복 소비로 봄
+MAX_INTERVAL_DAYS = 40            # 이보다 뜸하면 이 데이터 기간(약 3개월)에서 주기 판단이 어려움
+INTERVAL_RELATIVE_TOLERANCE = 0.25  # 모든 간격이 중앙값의 ±25% 안에 들어와야 "규칙적"
 
 # ------------------------------------------------------------------
 # 0-1. ★ 파일 경로 자동탐색 (expense_classifier.py와 똑같은 방식)
@@ -100,10 +104,23 @@ def detect_recurring_payments(df: pd.DataFrame) -> pd.DataFrame:
             if intervals.empty:
                 continue
 
-            # 모든 간격이 25~35일 사이여야 "정기결제"로 인정 (하나라도 벗어나면 탈락)
+            # 9/5 수정 — 원래는 "모든 간격이 25~35일"일 때만 정기결제로 인정했습니다.
+            # 그러다 보니 월 구독만 잡히고 주간(배달 앱 구독)·격주 결제는 전부 놓쳤고,
+            # 실제로 데모 페르소나의 45일 현금흐름 시뮬레이션에 투사된 정기 지출이
+            # 단 한 건도 없어서(수입 계단만 있고 지출은 매일 균등 감소) 예측 그래프가
+            # 사실상 직선이 되는 문제가 있었습니다.
+            #
+            # 대신 "간격이 얼마나 일정한가"로 판정합니다: 간격의 중앙값이 주간~월간
+            # 범위(5~40일) 안에 있고, 모든 간격이 그 중앙값의 ±25% 안에 들어오면
+            # 정기결제로 봅니다. 주기가 7일이든 14일이든 30일이든 규칙적이기만 하면
+            # 잡히고, 불규칙한 결제(스타벅스처럼)는 여전히 걸러집니다.
+            median_interval = float(intervals.median())
+            if not (MIN_INTERVAL_DAYS <= median_interval <= MAX_INTERVAL_DAYS):
+                continue
+            tolerance = median_interval * INTERVAL_RELATIVE_TOLERANCE
             is_regular = intervals.between(
-                INTERVAL_TARGET_DAYS - INTERVAL_TOLERANCE_DAYS,
-                INTERVAL_TARGET_DAYS + INTERVAL_TOLERANCE_DAYS,
+                median_interval - tolerance,
+                median_interval + tolerance,
             ).all()
             if not is_regular:
                 continue

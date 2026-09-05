@@ -260,6 +260,9 @@ class DailyBalancePoint(BaseModel):
 class ShieldResponse(BaseModel):
     user_id: str
     current_balance: float
+    # "user_set" = 사용자가 알려준 잔액에서 출발한 시뮬레이션,
+    # "estimated" = 최근 30일 수입·지출로 앱이 추정한 값 (app/cashflow.py 참고)
+    balance_source: str = "estimated"
     tax_reserve: float
     insurance_reserve: float
     available_cash: float

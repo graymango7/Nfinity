@@ -99,6 +99,41 @@ def _get_min_safety_balance(db: Session, user_id: str) -> float:
     return float(DEFAULT_MIN_SAFETY_BALANCE)
 
 
+def _get_current_balance(db: Session, user_id: str, income_df: pd.DataFrame, tx_df: pd.DataFrame) -> tuple[float, str]:
+    """시뮬레이션의 시작 잔액과 그 출처를 함께 돌려줍니다.
+
+    9/5 수정 — 이전에는 무조건 `연결된 플랫폼의 정산완료 수입 합계 - 전체 지출 합계`로
+    잔액을 유도했습니다. 그런데 이 앱은 (설계상) 사용자가 '연결'한 플랫폼의 수입만
+    집계하는 반면 지출은 카드 거래 전부를 집계하기 때문에, 미연결 플랫폼이 하나라도
+    있으면 그만큼 수입이 통째로 빠진 채 지출만 온전히 반영되어 잔액이 구조적으로
+    음수 쪽으로 치우칩니다. 실제로 데모 페르소나 5명 중 3명이 마이너스 수백만원으로
+    나왔고, 그 결과 45일 시뮬레이션이 전부 "1일 후 잔고 부족"만 반환해서 예측 기능이
+    사실상 죽어 있었습니다.
+
+    오픈뱅킹 연동이 없는 이 MVP에서 정직한 모델은 "사용자가 알려준 현재 잔액"을
+    기준점으로 삼는 것입니다(실서비스라면 마이데이터로 채울 자리). 설정값이 없으면
+    수입·지출을 같은 기간(최근 30일)으로 맞춰 순현금흐름을 추정하되, 위와 같은 이유로
+    음수가 될 수 있어 0 밑으로는 내려가지 않게 막고 출처를 'estimated'로 표시합니다.
+    """
+    row = db.execute(
+        text("SELECT current_balance FROM user_settings WHERE user_id = :uid"),
+        {"uid": user_id},
+    ).mappings().first()
+    if row and row["current_balance"] is not None:
+        return float(row["current_balance"]), "user_set"
+
+    from app.demo_clock import get_demo_now
+
+    demo_now = get_demo_now(db)
+    window_start = demo_now - timedelta(days=30)
+    income_30d = 0.0
+    if not income_df.empty:
+        settled = income_df[income_df["status"] == "정산완료"]
+        income_30d = float(settled[settled["settled_at"] >= window_start]["amount"].sum())
+    spend_30d = float(tx_df[tx_df["timestamp"] >= window_start]["amount"].sum()) if not tx_df.empty else 0.0
+    return max(0.0, income_30d - spend_30d), "estimated"
+
+
 def _project_future_income(income_df: pd.DataFrame, demo_now: datetime, horizon_end: datetime) -> list[dict]:
     """소스(플랫폼)별로 과거 '정산완료' 이벤트의 간격·금액 패턴을 보고, 이미 알고 있는
     '정산예정' 건 이후 구간까지 미래 수입을 이어서 추정합니다.
@@ -189,9 +224,7 @@ def compute_shield(db: Session, user_id: str) -> dict:
     if income_df.empty and tx_df.empty:
         return None  # 라우터에서 404 처리
 
-    total_income = float(income_df[income_df["status"] == "정산완료"]["amount"].sum()) if not income_df.empty else 0.0
-    total_spend = float(tx_df["amount"].sum()) if not tx_df.empty else 0.0
-    current_balance = total_income - total_spend
+    current_balance, balance_source = _get_current_balance(db, user_id, income_df, tx_df)
 
     # --- Dynamic Parking: 월 평균 수입 기준 간이 준비금 ---
     window_start = demo_now - timedelta(days=INCOME_LOOKBACK_DAYS)
@@ -285,6 +318,7 @@ def compute_shield(db: Session, user_id: str) -> dict:
     return {
         "user_id": user_id,
         "current_balance": round(current_balance),
+        "balance_source": balance_source,
         "tax_reserve": tax_reserve,
         "insurance_reserve": insurance_reserve,
         "available_cash": round(available_cash),
@@ -312,9 +346,7 @@ def compute_scenarios(db: Session, user_id: str) -> Optional[dict]:
     if income_df.empty and tx_df.empty:
         return None
 
-    total_income = float(income_df[income_df["status"] == "정산완료"]["amount"].sum()) if not income_df.empty else 0.0
-    total_spend = float(tx_df["amount"].sum()) if not tx_df.empty else 0.0
-    current_balance = total_income - total_spend
+    current_balance, _ = _get_current_balance(db, user_id, income_df, tx_df)
     horizon_end = demo_now + timedelta(days=SIMULATION_HORIZON_DAYS)
 
     def _simulate(income_delay_days: int, income_scale: float) -> list[dict]:

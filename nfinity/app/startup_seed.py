@@ -73,6 +73,39 @@ def _count(db, table: str, where: str = "") -> int:
     return row["n"] if row else 0
 
 
+def _ensure_persona_balances():
+    """데모 페르소나의 Risk Shield 시작 잔액을 user_settings에 채웁니다(idempotent).
+
+    이미 값이 들어있으면 덮어쓰지 않습니다 — 화면에서 사용자가 직접 잔액을 수정해본
+    상태를 서버 재시작이 되돌려버리면 안 되기 때문입니다.
+    """
+    from app.database import SessionLocal
+    from app.demo_personas import DEMO_PERSONAS
+
+    db = SessionLocal()
+    try:
+        for p in DEMO_PERSONAS:
+            balance = p.get("current_balance")
+            if balance is None:
+                continue
+            db.execute(
+                text(
+                    "INSERT INTO user_settings (user_id, current_balance, updated_at) "
+                    "VALUES (:uid, :bal, now()) "
+                    "ON CONFLICT (user_id) DO UPDATE SET current_balance = "
+                    "COALESCE(user_settings.current_balance, EXCLUDED.current_balance)"
+                ),
+                {"uid": p["user_id"], "bal": balance},
+            )
+        db.commit()
+        logger.info("[startup_seed] 페르소나 시작 잔액 확인/설정 완료.")
+    except Exception:
+        db.rollback()
+        logger.exception("[startup_seed] 페르소나 시작 잔액 설정 중 오류.")
+    finally:
+        db.close()
+
+
 def ensure_demo_data_seeded():
     from app.database import SessionLocal
 
@@ -117,6 +150,12 @@ def ensure_demo_data_seeded():
                 seed_income(db3)
             finally:
                 db3.close()
+
+        # 9/5 추가: Risk Shield 시작 잔액(user_settings.current_balance) 채우기.
+        # 위 단계들과 달리 별도 조건으로 두는 이유는, 이 컬럼이 나중에 추가돼서 이미
+        # 시딩이 끝난 DB(=budgets/income이 이미 차 있어 위 분기들이 전부 건너뛰어지는 DB)
+        # 에도 값이 들어가야 하기 때문입니다.
+        _ensure_persona_balances()
 
         logger.info("[startup_seed] 데모 데이터 시딩 완료.")
     except Exception:

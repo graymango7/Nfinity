@@ -140,8 +140,17 @@ CREATE INDEX IF NOT EXISTS idx_income_events_source ON income_events (source_id)
 CREATE TABLE IF NOT EXISTS user_settings (
     user_id             VARCHAR(50) PRIMARY KEY REFERENCES users(user_id),
     min_safety_balance  NUMERIC(14, 2),
+    current_balance     NUMERIC(14, 2),
     updated_at          TIMESTAMP NOT NULL DEFAULT now()
 );
+
+-- 9/5: current_balance 추가. 이전에는 Risk Shield의 시작 잔액을
+-- "연결된 플랫폼 수입 합계 - 전체 지출 합계"로 유도했는데, 수입은 (의도적으로) 연결된
+-- 플랫폼만 집계하고 지출은 전부 집계하다 보니 잔액이 구조적으로 음수가 나왔습니다
+-- (5명 중 3명이 마이너스). 오픈뱅킹이 없는 이 MVP에서 정직한 모델은 "사용자가 알려준
+-- 현재 잔액"을 기준점으로 잡고 거기서부터 앞으로를 시뮬레이션하는 것이라, 컬럼을 두고
+-- 데모 페르소나는 시드로 채웁니다. 이미 테이블이 있는 환경을 위한 보강문입니다.
+ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS current_balance NUMERIC(14, 2);
 
 -- 샘플 시드 데이터 (동작 확인용 - 나중에 지워도 됩니다)
 INSERT INTO users (user_id, name, persona) VALUES

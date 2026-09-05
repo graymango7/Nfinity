@@ -92,12 +92,19 @@ def get_gig_score(user_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="유저 프로파일이 없습니다.")
 
     # 변동계수(표준편차/평균)가 낮을수록 "지출이 규칙적"이라고 보고 안정성 점수를 높게 줍니다.
+    #
+    # 9/5 수정 — 원래 산식은 `1 - min(cv, 1)`이었는데, 거래 금액 분포는 원래 편차가 커서
+    # (커피 4천원과 월세 50만원이 같은 목록에 있음) 변동계수가 거의 항상 1을 넘습니다.
+    # 그 결과 데모 페르소나 5명 전원이 이 지표에서 정확히 0.0을 받아, 점수의 35%가
+    # 통째로 죽은 채 총점이 293~433점(1000점 만점)으로 낮게 깔리고 사람 간 변별력도
+    # 전혀 없었습니다. 1을 넘으면 무조건 0이 되는 절벽 대신, 변동계수가 커질수록
+    # 완만하게 낮아지는 1/(1+cv)로 바꿉니다 (cv=0.5→0.67, cv=1→0.5, cv=2→0.33).
     avg_amt = float(profile["avg_transaction_amount"] or 0)
     std_amt = float(profile["std_transaction_amount"] or 0)
     stability = 1.0
     if avg_amt > 0:
         cv = std_amt / avg_amt
-        stability = max(0.0, 1.0 - min(cv, 1.0))
+        stability = 1.0 / (1.0 + max(0.0, cv))
 
     connect_rate = _platform_connect_rate(db, user_id)
     expense_diligence = _expense_diligence(db, user_id)
