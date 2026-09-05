@@ -14,68 +14,69 @@
   - 모든 동적 텍스트는 escapeHtml을 거칩니다(값이 LLM 출력이 될 수 있는 필드가 있어서).
 -->
 <title>Nfinity — N잡러 현금흐름 관리</title>
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
-    --bg: #f5f6f8; --card: #fff; --border: #e3e6ea; --border-strong: #d1d6dc;
-    --text: #101828; --text-muted: #667085; --text-faint: #98a2b3;
-    --accent: #1b4dd8; --accent-soft: #eaf0ff;
-    --safe: #067647; --warn: #b54708; --danger: #b42318;
-    --safe-soft: #ecfdf3; --warn-soft: #fffaeb; --danger-soft: #fef3f2;
+    --bg: #f2f4f6; --card: #fff; --border: #e5e8eb; --border-strong: #d1d6db;
+    --text: #191f28; --text-muted: #4e5968; --text-faint: #8b95a1;
+    --accent: #3182f6; --accent-soft: #e8f3ff;
+    --safe: #00a661; --warn: #ff8a00; --danger: #f04452;
+    --safe-soft: #e7f8f0; --warn-soft: #fff5e6; --danger-soft: #ffeff0;
   }
   * { box-sizing: border-box; }
   body {
-    margin: 0; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
-    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    margin: 0; background: var(--bg); color: var(--text); font-size: 15px; line-height: 1.5;
+    font-family: "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
                  "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-    -webkit-font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased; letter-spacing: -0.01em;
   }
   .num { font-variant-numeric: tabular-nums; }
   [hidden] { display: none !important; }
 
   /* ---------- 공통 바 ---------- */
-  .topbar { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
-  .topbar-inner { max-width: 1320px; margin: 0 auto; padding: 0 28px; height: 60px;
+  .topbar { background: rgba(255,255,255,.88); backdrop-filter: saturate(180%) blur(12px);
+    position: sticky; top: 0; z-index: 50; }
+  .topbar-inner { max-width: 1320px; margin: 0 auto; padding: 0 28px; height: 66px;
     display: flex; align-items: center; gap: 14px; }
-  .brand { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
+  .brand { font-size: 21px; font-weight: 700; letter-spacing: -0.04em; }
   .brand span { color: var(--accent); }
-  .demo-badge { font-size: 12px; color: var(--warn); background: var(--warn-soft);
-    border: 1px solid #fedf89; padding: 4px 10px; border-radius: 999px; }
+  .demo-badge { font-size: 12.5px; font-weight: 600; color: var(--warn); background: var(--warn-soft);
+    border: 0; padding: 6px 12px; border-radius: 999px; }
   .spacer { flex: 1; }
-  .ghost-btn { background: #fff; border: 1px solid var(--border-strong); border-radius: 8px;
-    padding: 7px 13px; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--text); }
-  .ghost-btn:hover { background: #fafbfc; }
+  .ghost-btn { background: #f2f4f6; border: 0; border-radius: 10px;
+    padding: 10px 15px; cursor: pointer; font-family: inherit; font-size: 14px;
+    font-weight: 600; color: var(--text-muted); }
+  .ghost-btn:hover { background: #e8ebee; color: var(--text); }
 
   /* ---------- 1) 선택 화면 ---------- */
   .landing { max-width: 1060px; margin: 0 auto; padding: 64px 28px 80px; }
-  .landing h1 { font-size: 34px; letter-spacing: -0.03em; margin: 0 0 12px; line-height: 1.3; }
+  .landing h1 { font-size: 40px; font-weight: 700; letter-spacing: -0.04em; margin: 0 0 16px; line-height: 1.35; }
   .landing h1 b { color: var(--accent); font-weight: 700; }
-  .landing .lede { font-size: 15px; color: var(--text-muted); max-width: 640px; margin: 0 0 10px; }
-  .landing .pick { font-size: 13px; color: var(--text-faint); margin: 34px 0 14px;
-    text-transform: none; letter-spacing: 0; }
+  .landing .lede { font-size: 17px; color: var(--text-muted); max-width: 660px; margin: 0; line-height: 1.6; }
+  .landing .pick { font-size: 15px; font-weight: 600; color: var(--text); margin: 44px 0 16px; }
   .persona-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
   @media (max-width: 900px) { .persona-grid { grid-template-columns: minmax(0, 1fr); } }
-  .persona-card { background: #fff; border: 1px solid var(--border); border-radius: 12px;
-    padding: 22px 20px; text-align: left; cursor: pointer; font-family: inherit;
-    transition: border-color .12s, box-shadow .12s, transform .12s; }
-  .persona-card:hover { border-color: var(--accent); box-shadow: 0 8px 24px rgba(27,77,216,0.10);
-    transform: translateY(-2px); }
-  .persona-card .emoji { font-size: 30px; display: block; margin-bottom: 12px; }
-  .persona-card .nm { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
-  .persona-card .job { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
-  .persona-card .tg { font-size: 13px; color: var(--text-muted); margin-top: 12px; min-height: 58px; line-height: 1.55; }
-  .persona-card .go { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; }
+  .persona-card { background: #fff; border: 0; border-radius: 20px;
+    padding: 26px 24px; text-align: left; cursor: pointer; font-family: inherit;
+    box-shadow: 0 1px 2px rgba(0,0,0,.03); transition: box-shadow .15s, transform .15s; }
+  .persona-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,.09); transform: translateY(-3px); }
+  .persona-card .emoji { font-size: 34px; display: block; margin-bottom: 14px; }
+  .persona-card .nm { font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+  .persona-card .job { font-size: 14px; color: var(--text-muted); margin-top: 3px; }
+  .persona-card .tg { font-size: 14px; color: var(--text-muted); margin: 14px 0; min-height: 63px; line-height: 1.6; }
+  .persona-card .go { font-size: 14.5px; color: var(--accent); font-weight: 700; margin-top: 10px; }
 
   /* ---------- 2) 대시보드 ---------- */
   .page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 60px; }
   .pagehead { margin-bottom: 8px; }
-  .pagehead h1 { margin: 0; font-size: 23px; letter-spacing: -0.02em; }
-  .pagehead .sub { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+  .pagehead h1 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
+  .pagehead .sub { color: var(--text-muted); font-size: 15px; margin-top: 6px; }
 
-  .section { margin-top: 34px; }
-  .section-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px;
-    margin-bottom: 14px; border-bottom: 1px solid var(--border); }
-  .section-head h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
-  .section-head .desc { font-size: 12.5px; color: var(--text-faint); }
+  .section { margin-top: 40px; }
+  .section-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+  .section-head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.03em; }
+  .section-head .desc { font-size: 13px; color: var(--text-faint); }
   .section-head .right { margin-left: auto; }
 
   .grid { display: grid; gap: 16px; }
@@ -83,16 +84,16 @@
   .row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   @media (max-width: 1080px) { .row-hero, .row-2 { grid-template-columns: minmax(0, 1fr); } }
 
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 18px 20px; min-width: 0; }
-  .card-title { font-size: 13.5px; font-weight: 650; margin-bottom: 12px; }
+  .card { background: var(--card); border: 0; border-radius: 18px;
+    padding: 24px; min-width: 0; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .card-title { font-size: 16px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 14px; }
 
-  .metric { font-size: 27px; font-weight: 680; letter-spacing: -0.02em; }
-  .metric-sm { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
-  .label { font-size: 12px; color: var(--text-muted); }
+  .metric { font-size: 32px; font-weight: 700; letter-spacing: -0.035em; }
+  .metric-sm { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; }
+  .label { font-size: 13px; color: var(--text-muted); }
 
-  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
-    font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px;
+    font-weight: 700; padding: 4px 10px; border-radius: 999px; }
   .pill.safe { color: var(--safe); background: var(--safe-soft); }
   .pill.warn { color: var(--warn); background: var(--warn-soft); }
   .pill.danger { color: var(--danger); background: var(--danger-soft); }
@@ -110,17 +111,17 @@
   .legend i { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 5px; }
 
   .list { display: flex; flex-direction: column; }
-  .list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f0f2f5; }
+  .list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f2f4f6; }
   .list-row:first-child { border-top: 0; }
   .list-row .grow { flex: 1; min-width: 0; }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  .bar { height: 6px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
+  .bar { height: 6px; border-radius: 999px; background: #f2f4f6; overflow: hidden; }
   .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
   .bar.over > span { background: var(--danger); }
   .bar.near > span { background: var(--warn); }
-  .gauge-track { height: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; margin: 10px 0 6px; }
-  .gauge-track > span { display: block; height: 100%; background: linear-gradient(90deg, #1b4dd8, #4a7bff); }
+  .gauge-track { height: 8px; border-radius: 999px; background: #f2f4f6; overflow: hidden; margin: 10px 0 6px; }
+  .gauge-track > span { display: block; height: 100%; background: linear-gradient(90deg, #3182f6, #64a8ff); }
 
   .reasons { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
   .reasons li { display: flex; gap: 8px; font-size: 12.5px; color: var(--text-muted); }
@@ -128,28 +129,29 @@
     background: var(--text-faint); margin-top: 7px; flex: none; }
 
   .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; }
-  .kv + .kv { border-top: 1px solid #f0f2f5; }
+  .kv + .kv { border-top: 1px solid #f2f4f6; }
   .muted-box { background: #f9fafb; border: 1px solid var(--border); border-radius: 8px;
     padding: 11px 13px; font-size: 12px; color: var(--text-muted); line-height: 1.55; }
   /* 입력 요소 */
   .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
   .field > label { font-size: 12px; color: var(--text-muted); }
   input[type="text"], input[type="number"], select {
-    font-family: inherit; font-size: 13px; color: var(--text); background: #fff;
-    border: 1px solid var(--border-strong); border-radius: 7px; padding: 7px 10px; width: 100%;
+    font-family: inherit; font-size: 15px; font-weight: 500; color: var(--text);
+    background: #f2f4f6; border: 1px solid transparent; border-radius: 12px;
+    padding: 12px 14px; width: 100%;
   }
-  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .btn { font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 7px;
-    padding: 8px 14px; cursor: pointer; border: 1px solid transparent; }
+  input:focus, select:focus { outline: none; background: #fff; border-color: var(--accent); }
+  .btn { font-family: inherit; font-size: 15px; font-weight: 700; border-radius: 12px;
+    padding: 13px 18px; cursor: pointer; border: 0; letter-spacing: -0.02em; }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #1740b8; }
-  .btn-primary:disabled { background: #a9bdf0; cursor: default; }
-  .btn-sm { padding: 5px 11px; font-size: 12.5px; }
-  .btn-outline { background: #fff; border-color: var(--border-strong); color: var(--text); }
-  .btn-outline:hover { background: #fafbfc; }
-  .chip { font-family: inherit; font-size: 12px; background: #f2f4f7; border: 1px solid var(--border);
-    color: var(--text-muted); border-radius: 999px; padding: 5px 11px; cursor: pointer; }
-  .chip:hover { background: #eaecf0; color: var(--text); }
+  .btn-primary:hover { background: #2272e6; }
+  .btn-primary:disabled { background: #b6d4fb; cursor: default; }
+  .btn-sm { padding: 9px 14px; font-size: 14px; border-radius: 10px; }
+  .btn-outline { background: #f2f4f6; color: var(--text); }
+  .btn-outline:hover { background: #e8ebee; }
+  .chip { font-family: inherit; font-size: 13.5px; font-weight: 600; background: #f2f4f6;
+    border: 0; color: var(--text-muted); border-radius: 999px; padding: 9px 14px; cursor: pointer; }
+  .chip:hover { background: var(--accent-soft); color: var(--accent); }
   .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; background: #101828; color: #fff;
     font-size: 13px; padding: 12px 16px; border-radius: 9px; box-shadow: 0 10px 30px rgba(16,24,40,.24);
     max-width: 380px; line-height: 1.5; }
@@ -392,41 +394,41 @@
     var s = "", t, i;
     for (t = 0; t <= 4; t++) {
       var v = lo + ((hi - lo) * t) / 4, y = Y(v);
-      s += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#eef0f3" stroke-width="1"/>';
-      s += '<text x="' + (PL - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#98a2b3">' + manwon(v) + "</text>";
+      s += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#f2f4f6" stroke-width="1"/>';
+      s += '<text x="' + (PL - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#8b95a1">' + manwon(v) + "</text>";
     }
     var step = Math.max(1, Math.round(points.length / 6));
     for (i = 0; i < points.length; i += step) {
-      s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#98a2b3">' + mmdd(points[i].date) + "</text>";
+      s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#8b95a1">' + mmdd(points[i].date) + "</text>";
     }
     var line = points.map(function (p, k) { return (k ? "L" : "M") + X(k).toFixed(1) + " " + Y(p.balance).toFixed(1); }).join(" ");
     var area = line + " L" + X(points.length - 1).toFixed(1) + " " + Y(lo).toFixed(1) + " L" + X(0).toFixed(1) + " " + Y(lo).toFixed(1) + " Z";
     s += '<path d="' + area + '" fill="url(#g1)"/>';
-    s += '<path d="' + line + '" fill="none" stroke="#1b4dd8" stroke-width="2.2" stroke-linejoin="round"/>';
+    s += '<path d="' + line + '" fill="none" stroke="#3182f6" stroke-width="2.6" stroke-linejoin="round"/>';
 
     var ys = Y(minSafety);
-    s += '<line x1="' + PL + '" y1="' + ys + '" x2="' + (W - PR) + '" y2="' + ys + '" stroke="#b42318" stroke-width="1.3" stroke-dasharray="5 4"/>';
-    s += '<text x="' + (W - PR) + '" y="' + (ys - 7) + '" text-anchor="end" font-size="11" fill="#b42318">최소 안전잔액 ' + manwon(minSafety) + "</text>";
+    s += '<line x1="' + PL + '" y1="' + ys + '" x2="' + (W - PR) + '" y2="' + ys + '" stroke="#f04452" stroke-width="1.3" stroke-dasharray="5 4"/>';
+    s += '<text x="' + (W - PR) + '" y="' + (ys - 7) + '" text-anchor="end" font-size="11" fill="#f04452">최소 안전잔액 ' + manwon(minSafety) + "</text>";
 
     if (shortageDate) {
       for (var k2 = 0; k2 < points.length; k2++) {
         if (points[k2].date === shortageDate) {
           var xs = X(k2);
-          s += '<line x1="' + xs + '" y1="' + PT + '" x2="' + xs + '" y2="' + (PT + ih) + '" stroke="#b42318" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>';
-          s += '<circle cx="' + xs + '" cy="' + Y(points[k2].balance) + '" r="4.5" fill="#b42318"/>';
+          s += '<line x1="' + xs + '" y1="' + PT + '" x2="' + xs + '" y2="' + (PT + ih) + '" stroke="#f04452" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>';
+          s += '<circle cx="' + xs + '" cy="' + Y(points[k2].balance) + '" r="4.5" fill="#f04452"/>';
           break;
         }
       }
     }
     points.forEach(function (p, k3) {
       if (!p.events || !p.events.length) return;
-      s += '<circle cx="' + X(k3) + '" cy="' + Y(p.balance) + '" r="3.6" fill="#fff" stroke="#1b4dd8" stroke-width="2">' +
+      s += '<circle cx="' + X(k3) + '" cy="' + Y(p.balance) + '" r="3.6" fill="#fff" stroke="#3182f6" stroke-width="2">' +
         "<title>" + escapeHtml(p.date + " · " + p.events.join(" / ")) + "</title></circle>";
     });
     return '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="45일 현금흐름 예측 그래프">' +
       '<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#1b4dd8" stop-opacity="0.16"/>' +
-      '<stop offset="100%" stop-color="#1b4dd8" stop-opacity="0.01"/></linearGradient></defs>' + s + "</svg>";
+      '<stop offset="0%" stop-color="#3182f6" stop-opacity="0.16"/>' +
+      '<stop offset="100%" stop-color="#3182f6" stop-opacity="0.01"/></linearGradient></defs>' + s + "</svg>";
   }
 
   function renderChart() {
@@ -443,10 +445,10 @@
       }
     }
     el("chartWrap").innerHTML = drawChart(pts, sh.min_safety_balance, shortage);
-    var lines = ['<span><i style="background:#1b4dd8"></i>예상 잔액</span>',
-                 '<span><i style="background:#b42318"></i>최소 안전잔액</span>'];
+    var lines = ['<span><i style="background:#3182f6"></i>예상 잔액</span>',
+                 '<span><i style="background:#f04452"></i>최소 안전잔액</span>'];
     if (state.scenarioKey === "기본") lines.push("<span>◦ 점 = 정산·정기결제 발생일 (마우스를 올리면 내역)</span>");
-    if (shortage) lines.push('<span style="color:#b42318">▎' + escapeHtml(mmdd(shortage)) + " 잔고 부족 예상</span>");
+    if (shortage) lines.push('<span style="color:#f04452">▎' + escapeHtml(mmdd(shortage)) + " 잔고 부족 예상</span>");
     el("chartLegend").innerHTML = lines.join("");
   }
 
