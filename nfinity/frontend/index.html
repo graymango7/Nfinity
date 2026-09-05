@@ -320,6 +320,11 @@
       </div>
     </div>
 
+    <div id="pane-guide" hidden>
+      <div class="panehint">지금 계산된 상황에서 고려할 수 있는 선택지를, 왜 그런지와 함께 정리했습니다.</div>
+      <div class="card"><div id="guidance"><div class="skeleton">불러오는 중…</div></div></div>
+    </div>
+
     <div id="pane-sec" hidden>
       <div class="panehint">보이스피싱·명의도용처럼 본인이 하지 않은 결제를 걸러내는 기능입니다.</div>
       <div class="grid row-2">
@@ -775,8 +780,32 @@
     if (cb) cb.addEventListener("click", function () { connectSource(cb.getAttribute("data-connect"), cb); });
   }
 
+  /** 대응 가이드 — 상품을 추천하지 않고, 상황 근거와 선택지·주의점을 함께 보여줍니다. */
+  function renderGuidance(g) {
+    var items = (g && g.items) || [];
+    if (!items.length) { el("guidance").innerHTML = '<div class="skeleton">표시할 안내가 없습니다.</div>'; return; }
+    var bg = { safe: "var(--safe-soft)", warn: "var(--warn-soft)", neutral: "#f2f4f6" };
+    var fg = { safe: "var(--safe)", warn: "var(--warn)", neutral: "var(--text-muted)" };
+    el("guidance").innerHTML = items.map(function (it, i) {
+      return '<div style="padding:' + (i ? "18px 0 0" : "0") + '">' +
+        (i ? '<div style="border-top:1px solid var(--border);margin-bottom:18px"></div>' : "") +
+        '<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">' +
+          '<span style="width:8px;height:8px;border-radius:50%;background:' + fg[it.tone] + '"></span>' +
+          '<span style="font-size:16px;font-weight:700;letter-spacing:-0.02em">' + escapeHtml(it.title) + "</span></div>" +
+        '<div style="background:' + bg[it.tone] + ';border-radius:10px;padding:11px 13px;font-size:13.5px;' +
+          'color:var(--text-muted);margin-bottom:10px">' + escapeHtml(it.why) + "</div>" +
+        '<ul style="margin:0 0 8px;padding-left:18px">' +
+          (it.options || []).map(function (o) {
+            return '<li style="font-size:14px;line-height:1.65;margin-bottom:5px">' + escapeHtml(o) + "</li>";
+          }).join("") + "</ul>" +
+        (it.caution ? '<div class="label" style="color:var(--text-faint)">※ ' + escapeHtml(it.caution) + "</div>" : "") +
+        "</div>";
+    }).join("") +
+    '<div class="muted-box" style="margin-top:18px">' + escapeHtml(g.disclaimer || "") + "</div>";
+  }
+
   // ---------- 3단: 탭 ----------
-  var PANES = [["cash", "현금흐름"], ["income", "수입"], ["spend", "지출"], ["sec", "거래 보안"]];
+  var PANES = [["cash", "현금흐름"], ["income", "수입"], ["spend", "지출"], ["guide", "대응 가이드"], ["sec", "거래 보안"]];
   function renderMainTabs() {
     el("mainTabs").innerHTML = PANES.map(function (p) {
       return '<button class="maintab" role="tab" data-p="' + p[0] + '" aria-selected="' +
@@ -1049,6 +1078,7 @@
       el(id).innerHTML = '<div class="skeleton">불러오는 중…</div>';
     });
     el("sources").innerHTML = ""; el("assessResult").innerHTML = "";
+    el("guidance").innerHTML = '<div class="skeleton">불러오는 중…</div>';
     el("chartWrap").innerHTML = '<div class="skeleton">불러오는 중…</div>';
     el("chartLegend").innerHTML = ""; el("riskBadge").innerHTML = "";
     setupAssess();
@@ -1063,6 +1093,8 @@
     });
     get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () {});
     get("/brief/" + uid).then(renderBrief).catch(function () { el("brief").innerHTML = ""; });
+    get("/guidance/" + uid).then(renderGuidance)
+      .catch(function () { fail("guidance", "대응 가이드를 불러오지 못했습니다."); });
     get("/tax/estimate/" + uid).then(function (t) { state.tax = t; renderParking(); renderTodos(); })
       .catch(function () { state.tax = null; renderParking(); });
     loadIncome(uid).then(renderTodos);
