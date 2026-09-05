@@ -28,10 +28,12 @@ logger = logging.getLogger("nfinity.gemini")
 #   gemini-flash-latest → 503 (일시 과부하)
 # 종료된 모델을 계속 시도하는 건 실패 시간만 늘리므로 빼고, 경량 모델을 뒤에 둡니다.
 # 경량 모델은 할당량이 따로 잡히는 경우가 있어 주 모델이 429일 때 살아있을 수 있습니다.
+# 9/6 2차 진단 결과: gemini-3.6-flash-lite도 404(존재하지 않는 이름)였고,
+# gemini-flash-lite-latest만 정상 응답했습니다. 주 모델들이 할당량(429)에 걸린 동안에도
+# 경량 모델은 살아있어서, 마지막 폴백으로 두면 AI 결과를 계속 보여줄 수 있습니다.
 _DEFAULT_CHAIN = [
     "gemini-3.6-flash",
     "gemini-flash-latest",
-    "gemini-3.6-flash-lite",
     "gemini-flash-lite-latest",
 ]
 
