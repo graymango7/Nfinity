@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import json
 import os
+from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
@@ -212,7 +213,22 @@ def classify_one(job: str, merchant: str, hour: int, amount: int) -> dict:
     # 애매한 케이스만 LLM(or mock)로 판단
     if MOCK_MODE:
         return mock_llm_classify(job, merchant, time_period, amount)
-    return call_gemini(job, merchant, time_period, amount)
+    return dict(_call_gemini_cached(job, merchant, time_period, int(amount)))
+
+
+@lru_cache(maxsize=512)
+def _call_gemini_cached(job: str, merchant: str, time_period: str, amount: int) -> tuple:
+    """같은 조건이면 같은 답이 나오므로 결과를 캐싱합니다. (9/5 추가)
+
+    화면 한 번을 그리는 데 이 함수가 여러 번 불립니다 — 업무경비 분류가 최근 20건,
+    Gig Score가 별도로 15건을 분류하기 때문입니다. 거래 목록에는 같은 가맹점이 반복해서
+    나오는데(구독·단골 카페 등) 캐시가 없으면 그때마다 Gemini를 새로 호출해서, 실제 키를
+    넣는 순간 대시보드 한 장에 수십 번의 LLM 왕복이 생깁니다.
+
+    dict는 캐시가 불가능해서(해시 불가) 항목 튜플로 저장했다가 호출부에서 다시 dict로
+    만듭니다. 프로세스 메모리에만 남고 재시작하면 비워집니다.
+    """
+    return tuple(call_gemini(job, merchant, time_period, amount).items())
 
 
 # ==========================================================
