@@ -25,6 +25,8 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Optional
 
+import logging
+
 import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -34,6 +36,8 @@ from data_pipeline.recurring_detector import detect_recurring_payments
 # ------------------------------------------------------------------
 # 0. 설정값 (전부 "간이 추정치"라는 전제 — 코드 상단 docstring 참고)
 # ------------------------------------------------------------------
+logger = logging.getLogger("nfinity.cashflow")
+
 TAX_RESERVE_RATE = 0.08        # 종합소득세 예비율(간이 추정)
 INSURANCE_RESERVE_RATE = 0.07  # 지역가입자 건강보험료 예비율(간이 추정)
 DEFAULT_MIN_SAFETY_BALANCE = 300_000  # 사용자가 직접 설정 안 했을 때 기본 최소 안전잔액
@@ -237,8 +241,28 @@ def compute_shield(db: Session, user_id: str) -> dict:
     cv = _income_variability(income_df, demo_now)
     variability_multiplier = 1 + min(cv, 1.0) * 0.5  # cv 0→1.0배, cv>=1→최대 1.5배
 
-    tax_reserve = round(monthly_avg_income * TAX_RESERVE_RATE)
-    insurance_reserve = round(monthly_avg_income * INSURANCE_RESERVE_RATE)
+    # 9/5 변경 — 예전에는 월평균 수입에 고정 비율(8%/7%)을 곱했습니다. 그 숫자의 근거가
+    # "프리랜서에게 흔히 권장되는 관행"뿐이라, 실제 제도 계산식(app/tax.py)으로 바꿉니다:
+    # 종합소득세는 단순경비율·누진세율·기납부 3.3%까지 반영한 뒤 12로 나눈 월 적립액,
+    # 건강보험료는 요율 7.19% + 장기요양보험료를 적용한 월 보험료입니다.
+    # 수입 데이터가 없는 유저(연결된 플랫폼이 없음)는 기존 방식으로 조용히 되돌립니다.
+    try:
+        from app.routers.tax import load_annual_income
+        from app.tax import estimate_health_insurance, estimate_income_tax, expense_rate_for
+
+        annual_business, annual_employment, platform_types = load_annual_income(db, user_id)
+        if annual_business > 0 or annual_employment > 0:
+            _tax = estimate_income_tax(annual_business, expense_rate_for(platform_types))
+            _health = estimate_health_insurance(annual_business, has_employment_income=annual_employment > 0)
+            tax_reserve = _tax["monthly_reserve"]
+            insurance_reserve = _health["total_monthly"]
+        else:
+            tax_reserve = round(monthly_avg_income * TAX_RESERVE_RATE)
+            insurance_reserve = round(monthly_avg_income * INSURANCE_RESERVE_RATE)
+    except Exception:
+        logger.exception("[cashflow] 세금·건보료 추정에 실패해 간이 비율로 되돌립니다.")
+        tax_reserve = round(monthly_avg_income * TAX_RESERVE_RATE)
+        insurance_reserve = round(monthly_avg_income * INSURANCE_RESERVE_RATE)
     available_cash = current_balance - tax_reserve - insurance_reserve
 
     # 다음 정산 주기(약 30일) 동안 추가로 더 모아둬야 할 권장액 — 변동성 클수록 더 넉넉히

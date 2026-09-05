@@ -37,7 +37,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.rate_limit import RateLimitMiddleware
 from app.redis_client import ping as redis_ping
-from app.routers import budgets, demo, expense, gig_score, income, risk, shield
+from app.routers import budgets, demo, expense, gig_score, income, risk, shield, tax
 from app.security_headers import SecurityHeadersMiddleware
 from app.startup_seed import run_startup_seed
 
@@ -72,6 +72,7 @@ app.include_router(gig_score.router)
 app.include_router(expense.router)
 app.include_router(income.router)
 app.include_router(demo.router)
+app.include_router(tax.router)
 
 
 @app.on_event("startup")
