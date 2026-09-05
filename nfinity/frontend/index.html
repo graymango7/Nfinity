@@ -89,6 +89,15 @@
   .todo .ds { font-size: 13px; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
   .todo .act { margin-top: 10px; }
 
+  .valueprops { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin-top: 34px; }
+  @media (max-width: 900px) { .valueprops { grid-template-columns: minmax(0,1fr); } }
+  .vp { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .vp .vpi { font-size: 22px; display: block; margin-bottom: 10px; }
+  .vp b { display: block; font-size: 15px; letter-spacing: -0.02em; margin-bottom: 6px; }
+  .vp span { font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
+
+  .panehint { font-size: 13.5px; color: var(--text-muted); margin: -2px 0 14px; }
+
   /* 3단 탭 */
   .maintabs { display: flex; gap: 4px; margin: 32px 0 16px; border-bottom: 1px solid var(--border); }
   .maintab { border: 0; background: none; font-family: inherit; font-size: 16px; font-weight: 700;
@@ -171,6 +180,21 @@
   .chip { font-family: inherit; font-size: 13.5px; font-weight: 600; background: #f2f4f6;
     border: 0; color: var(--text-muted); border-radius: 999px; padding: 9px 14px; cursor: pointer; }
   .chip:hover { background: var(--accent-soft); color: var(--accent); }
+  /* 눌러보는 시나리오 버튼 — 입력 없이 클릭만으로 판정을 볼 수 있게 하는 자리 */
+  .scenario { display: flex; align-items: center; gap: 13px; width: 100%; text-align: left;
+    font-family: inherit; background: #f9fafb; border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; cursor: pointer; margin-bottom: 8px; }
+  .scenario:hover { background: var(--accent-soft); border-color: var(--accent); }
+  .scenario:disabled { opacity: .6; cursor: default; }
+  .scenario .ic { font-size: 20px; flex: none; }
+  .scenario .t { display: block; font-size: 14.5px; font-weight: 700; letter-spacing: -0.02em; color: var(--text); }
+  .scenario .d { display: block; font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .scenario .go { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--accent); white-space: nowrap; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::marker { content: ""; }
+  details summary::before { content: "＋ "; }
+  details[open] summary::before { content: "－ "; }
+
   .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; background: #101828; color: #fff;
     font-size: 13px; padding: 12px 16px; border-radius: 9px; box-shadow: 0 10px 30px rgba(16,24,40,.24);
     max-width: 380px; line-height: 1.5; }
@@ -198,7 +222,15 @@
       배달·프리랜서·콘텐츠 등 흩어진 플랫폼의 정산 주기를 학습해 앞으로 45일의 잔액을 예측하고,
       수입 변동성에 맞춰 세금·건강보험료를 미리 떼어둡니다. 이상거래 탐지와 업무경비 분류도 함께 제공합니다.
     </p>
-    <div class="pick">아래 세 사람 중 한 명을 골라 그 사람의 대시보드를 살펴보세요.</div>
+    <div class="valueprops">
+      <div class="vp"><span class="vpi">📉</span><b>다음 정산까지 버틸 수 있는지</b>
+        <span>플랫폼별 정산 주기를 학습해 앞으로 45일의 잔액을 하루 단위로 예측합니다.</span></div>
+      <div class="vp"><span class="vpi">🧾</span><b>세금·건보료가 얼마 나올지</b>
+        <span>5월 종합소득세와 건강보험료를 실제 산식으로 계산하고, 2,000만원 기준을 넘기 전에 알려줍니다.</span></div>
+      <div class="vp"><span class="vpi">🛡️</span><b>이상한 결제를 막아주는지</b>
+        <span>규칙 7종과 이상탐지 AI가 결제 순간 위험도를 매겨 승인·본인확인·차단을 정합니다.</span></div>
+    </div>
+    <div class="pick">아래 세 사람 중 한 명을 골라, 그 사람의 실제 데이터로 위 기능들을 확인해보세요.</div>
     <div class="persona-grid" id="personaGrid">
       <div class="skeleton">불러오는 중…</div>
     </div>
@@ -222,6 +254,7 @@
     <nav class="maintabs" id="mainTabs" role="tablist"></nav>
 
     <div id="pane-cash">
+      <div class="panehint">앞으로 들어올 정산과 나갈 고정비를 이어붙여, 잔액이 언제 위험해지는지 하루 단위로 계산합니다.</div>
       <div class="grid row-hero">
         <div class="card">
           <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
@@ -240,6 +273,7 @@
     </div>
 
     <div id="pane-income" hidden>
+      <div class="panehint">여러 플랫폼에 흩어진 정산 내역을 한 곳에 모읍니다. 연결한 플랫폼만 예측·세금 계산에 반영됩니다.</div>
       <div class="grid row-2">
         <div class="card">
           <div class="card-title">플랫폼별 수입 <span class="label" id="incomePeriod"></span></div>
@@ -254,6 +288,7 @@
     </div>
 
     <div id="pane-spend" hidden>
+      <div class="panehint">카테고리별로 이번 달 예산을 얼마나 썼는지, 그리고 어떤 결제가 업무 경비로 인정될 수 있는지 봅니다.</div>
       <div class="grid row-2">
         <div class="card">
           <div class="card-title">이번 달 예산</div>
@@ -267,31 +302,41 @@
     </div>
 
     <div id="pane-sec" hidden>
+      <div class="panehint">보이스피싱·명의도용처럼 본인이 하지 않은 결제를 걸러내는 기능입니다.</div>
       <div class="grid row-2">
         <div class="card">
-          <div class="card-title">거래 위험도 즉시 검사</div>
-          <div class="label" style="margin-bottom:14px">
-            결제 정보를 넣으면 규칙 엔진 7종과 이상탐지 모델이 함께 판정합니다.
-            결과는 이 사용자의 탐지 이력에 실제로 기록됩니다.
+          <div class="card-title">이런 결제가 시도되면 어떻게 될까요?</div>
+          <div class="label" style="margin-bottom:16px;line-height:1.6">
+            Nfinity는 결제가 일어나는 순간 규칙 7종과 이상탐지 AI로 위험도를 매겨
+            <b style="color:var(--text)">승인 · 본인확인 · 차단</b> 중 하나를 정합니다.
+            아래 상황을 눌러 실제로 어떻게 판정하는지 확인해보세요.
           </div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px" id="assessPresets"></div>
-          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px">
-            <div class="field"><label for="afMerchant">가맹점</label>
-              <input type="text" id="afMerchant" value="스타벅스 강남점"></div>
-            <div class="field"><label for="afAmount">금액 (원)</label>
-              <input type="number" id="afAmount" value="5600" min="0" step="100"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
-            <div class="field"><label for="afHour">결제 시각</label><select id="afHour"></select></div>
-            <div class="field"><label for="afCountry">결제 국가</label>
-              <select id="afCountry"><option value="KR">대한민국</option><option value="US">미국</option>
-                <option value="JP">일본</option><option value="CN">중국</option></select></div>
-            <div class="field"><label for="afDevice">결제 기기</label>
-              <select id="afDevice"><option value="known">평소 쓰던 기기</option>
-                <option value="new">처음 보는 기기</option></select></div>
-          </div>
-          <button class="btn btn-primary" id="assessBtn" style="width:100%">위험도 검사</button>
+          <div id="assessPresets"></div>
           <div id="assessResult" style="margin-top:16px"></div>
+
+          <details id="manualBox" style="margin-top:18px">
+            <summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--text-muted)">
+              직접 입력해서 시험해보기
+            </summary>
+            <div style="margin-top:14px">
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px">
+                <div class="field"><label for="afMerchant">가맹점</label>
+                  <input type="text" id="afMerchant" value="스타벅스 강남점"></div>
+                <div class="field"><label for="afAmount">금액 (원)</label>
+                  <input type="number" id="afAmount" value="5600" min="0" step="100"></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+                <div class="field"><label for="afHour">결제 시각</label><select id="afHour"></select></div>
+                <div class="field"><label for="afCountry">결제 국가</label>
+                  <select id="afCountry"><option value="KR">대한민국</option><option value="US">미국</option>
+                    <option value="JP">일본</option><option value="CN">중국</option></select></div>
+                <div class="field"><label for="afDevice">결제 기기</label>
+                  <select id="afDevice"><option value="known">평소 쓰던 기기</option>
+                    <option value="new">처음 보는 기기</option></select></div>
+              </div>
+              <button class="btn btn-primary" id="assessBtn" style="width:100%">이 결제로 검사하기</button>
+            </div>
+          </details>
         </div>
         <div class="card">
           <div style="display:flex;align-items:baseline;margin-bottom:14px">
@@ -815,11 +860,17 @@
 
   /** 거래 위험도 즉시 검사 — POST /risk/assess. 실제 룰 엔진 + Isolation Forest 앙상블을
    *  그대로 통과하며, 판정 결과는 risk_events에 기록되어 옆 탐지 이력에도 바로 반영됩니다. */
+  // 각 항목은 "언제·어디서·얼마"를 사람 말로 적어둡니다. 사용자가 가맹점명이나 시각을
+  // 직접 타이핑하지 않아도, 눌러보기만 하면 판정 과정을 볼 수 있게 하는 게 목적입니다.
   var PRESETS = [
-    { label: "평범한 카페 결제", merchant: "스타벅스 강남점", amount: 5600, hour: 14, country: "KR", device: "known" },
-    { label: "심야 금은방 고액", merchant: "종로금은방", amount: 3200000, hour: 2, country: "KR", device: "known" },
-    { label: "해외 사이트 결제", merchant: "Steam_Global", amount: 600000, hour: 3, country: "US", device: "known" },
-    { label: "낯선 기기에서 결제", merchant: "쿠팡", amount: 480000, hour: 11, country: "KR", device: "new" }
+    { icon: "☕", label: "평소처럼 카페에서 결제", detail: "오후 2시 · 스타벅스 · 5,600원",
+      merchant: "스타벅스 강남점", amount: 5600, hour: 14, country: "KR", device: "known" },
+    { icon: "💍", label: "새벽에 금은방에서 큰 금액", detail: "새벽 2시 · 종로금은방 · 320만원",
+      merchant: "종로금은방", amount: 3200000, hour: 2, country: "KR", device: "known" },
+    { icon: "🌍", label: "해외 사이트에서 결제", detail: "새벽 3시 · 미국 · 60만원",
+      merchant: "Steam_Global", amount: 600000, hour: 3, country: "US", device: "known" },
+    { icon: "📱", label: "처음 보는 기기에서 결제", detail: "오전 11시 · 쿠팡 · 48만원",
+      merchant: "쿠팡", amount: 480000, hour: 11, country: "KR", device: "new" }
   ];
 
   function setupAssess() {
@@ -831,20 +882,31 @@
       hourSel.value = "14";
     }
     el("assessPresets").innerHTML = PRESETS.map(function (p, i) {
-      return '<button class="chip" data-i="' + i + '">' + escapeHtml(p.label) + "</button>";
+      return '<button class="scenario" data-i="' + i + '">' +
+        '<span class="ic">' + p.icon + "</span>" +
+        '<span><span class="t">' + escapeHtml(p.label) + "</span>" +
+        '<span class="d">' + escapeHtml(p.detail) + "</span></span>" +
+        '<span class="go">검사 →</span></button>';
     }).join("");
-    Array.prototype.forEach.call(el("assessPresets").querySelectorAll(".chip"), function (b) {
+    Array.prototype.forEach.call(el("assessPresets").querySelectorAll(".scenario"), function (b) {
       b.addEventListener("click", function () {
         var p = PRESETS[Number(b.getAttribute("data-i"))];
+        // 폼에도 채워둡니다 — "직접 입력" 을 펼치면 방금 검사한 값이 그대로 보여서
+        // 무엇을 바꿔볼 수 있는지 알기 쉽습니다.
         el("afMerchant").value = p.merchant; el("afAmount").value = p.amount;
         el("afHour").value = String(p.hour); el("afCountry").value = p.country; el("afDevice").value = p.device;
+        runAssess(b);
       });
     });
   }
 
-  function runAssess() {
-    var btn = el("assessBtn");
-    btn.disabled = true; btn.textContent = "검사 중…";
+  function runAssess(srcBtn) {
+    var btn = srcBtn || el("assessBtn");
+    var restore = btn.innerHTML;
+    btn.disabled = true;
+    if (btn.classList.contains("scenario")) {
+      var go = btn.querySelector(".go"); if (go) go.textContent = "검사 중…";
+    } else { btn.textContent = "검사 중…"; }
 
     // 평가 시각은 데모 기준 시각(가장 최근 거래일)의 해당 시간으로 맞춥니다.
     // 실제 서버 시각으로 보내면 mock 데이터 기간을 한참 벗어나 과거 이력 기반 규칙
@@ -861,32 +923,44 @@
       device_id: el("afDevice").value === "new" ? "device_new_" + Date.now() : "device_primary"
     };
 
+    // 조치별로 "그래서 사용자에게 무슨 일이 일어나는지"까지 한 줄로 풀어 씁니다.
+    var ACTIONS = {
+      ALLOW: { label: "그대로 승인", desc: "평소 패턴과 크게 다르지 않아 결제가 정상 진행됩니다." },
+      FLAG_FOR_REVIEW: { label: "표시해두고 승인", desc: "결제는 진행되지만 확인이 필요한 거래로 남겨둡니다." },
+      REQUIRE_CONFIRMATION: { label: "본인 확인 요청", desc: "결제를 잠시 멈추고 본인이 맞는지 확인을 요청합니다." },
+      BLOCK: { label: "결제 차단", desc: "위험이 크다고 판단해 결제를 막고 즉시 알립니다." }
+    };
+
     send("POST", "/risk/assess", payload).then(function (res) {
-      var cls = riskClass(res.severity);
-      var actionText = { ALLOW: "정상 승인", FLAG_FOR_REVIEW: "검토 대상으로 표시",
-        REQUIRE_CONFIRMATION: "본인 확인 요청", BLOCK: "결제 차단" };
+      var act = ACTIONS[res.action] || { label: res.action, desc: "" };
       el("assessResult").innerHTML =
-        '<div style="border:1px solid var(--border);border-radius:9px;padding:14px">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
-            '<span class="pill ' + cls + '"><span class="dot"></span>' + escapeHtml(res.severity) + "</span>" +
-            '<span class="metric-sm num">' + res.score + "점</span>" +
-            '<span class="label" style="margin-left:auto">조치: <b style="color:var(--text)">' +
-              escapeHtml(actionText[res.action] || res.action) + "</b></span></div>" +
+        '<div style="background:#f9fafb;border-radius:14px;padding:18px">' +
+          '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">' +
+            '<span class="metric-sm">' + escapeHtml(act.label) + "</span>" +
+            '<span class="pill ' + riskClass(res.severity) + '"><span class="dot"></span>위험도 ' +
+              res.score + "점</span></div>" +
+          '<div class="label" style="margin-top:6px">' + escapeHtml(act.desc) + "</div>" +
           (res.triggered_rules && res.triggered_rules.length
-            ? '<div class="list">' + res.triggered_rules.map(function (t) {
+            ? '<div class="label" style="margin:14px 0 6px">이렇게 판단한 이유 ' +
+                res.triggered_rules.length + "가지</div>" +
+              '<div class="list">' + res.triggered_rules.map(function (t) {
                 return '<div class="list-row"><span class="pill ' + riskClass(t.severity) +
                   '" style="min-width:66px;justify-content:center">' + escapeHtml(t.severity) + "</span>" +
-                  '<span class="grow label">' + escapeHtml(t.rule_id) + " · " + escapeHtml(t.description) + "</span></div>";
+                  '<span class="grow">' + escapeHtml(t.description) +
+                  ' <span class="label">(' + escapeHtml(t.rule_id) + ")</span></span></div>";
               }).join("") + "</div>"
-            : '<div class="label">걸린 규칙이 없습니다. 평소 결제 패턴과 크게 다르지 않습니다.</div>') +
+            : '<div class="label" style="margin-top:10px">걸린 규칙이 없습니다 — 이 사용자의 평소 결제 패턴과 크게 다르지 않습니다.</div>') +
+          '<div class="label" style="margin-top:14px;color:var(--text-faint)">' +
+            "이 판정은 옆의 탐지 이력에도 방금 기록되었습니다.</div>" +
         "</div>";
-      // 방금 평가가 이력에 기록됐으니 옆 타임라인과 종합 점수도 갱신합니다.
       return Promise.all([get("/risk/score/" + state.userId), get("/risk/events?user_id=" + state.userId + "&limit=10")]);
     }).then(function (r) { renderRisk(r[0], r[1]); })
-      .catch(function () { el("assessResult").innerHTML = '<div class="err">검사에 실패했습니다.</div>'; })
-      .then(function () { btn.disabled = false; btn.textContent = "위험도 검사"; });
+      .catch(function () { el("assessResult").innerHTML = '<div class="err">검사에 실패했습니다. 잠시 후 다시 시도해 주세요.</div>'; })
+      .then(function () { btn.disabled = false; btn.innerHTML = restore; });
   }
-  el("assessBtn").addEventListener("click", runAssess);
+  // 이벤트 객체가 runAssess의 첫 인자로 들어가지 않도록 감싸서 넘깁니다
+  // (그대로 넘기면 btn 자리에 MouseEvent가 들어와 classList 접근에서 터집니다).
+  el("assessBtn").addEventListener("click", function () { runAssess(); });
 
   // ---------- 로딩 ----------
   function selectUser(uid) {

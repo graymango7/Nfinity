@@ -1,0 +1,4 @@
+7) .then(fn) forms: ['renderTodos', 'renderGig', 'renderExpense']
+8) runAssess calls: ['runAssess(b)', 'runAssess(srcBtn)', 'runAssess()']
+9) manual form ids present: True
+10) scenario handler wraps runAssess: True
