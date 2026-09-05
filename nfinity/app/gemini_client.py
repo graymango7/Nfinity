@@ -55,8 +55,12 @@ def generate_json(system_instruction: str, contents: str, temperature: float = 0
     from google import genai
     from google.genai import types
 
-    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     last_exc = None
+    try:
+        client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    except Exception as exc:  # 클라이언트 생성 실패도 "호출 실패"로 기록해야 health가 사실대로 보고합니다
+        LAST_CALL_OK, LAST_CALL_ERROR, LAST_MODEL_USED = False, (type(exc).__name__ + ": " + str(exc))[:200], ""
+        raise
     for model in model_chain():
         try:
             resp = client.models.generate_content(
