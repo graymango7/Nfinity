@@ -75,6 +75,14 @@ def _load_transactions_df(db: Session, user_id: str) -> pd.DataFrame:
 @router.post("", response_model=BudgetUsage)
 def create_or_update_budget(body: BudgetCreate, db: Session = Depends(get_db)):
     """카테고리별 월 예산 한도를 설정합니다. 이미 있으면 한도만 갱신합니다."""
+    # 9/6: user_id를 본문으로 받는 유일한 쓰기 엔드포인트라, 미들웨어(app/demo_guard.py)의
+    # 경로·쿼리 검사에 걸리지 않습니다. 실제로 배포본에서 시드된 비데모 유저의 예산 한도를
+    # 임의로 바꿀 수 있는 걸 확인해서, /risk/assess와 같은 방식으로 여기서 직접 막습니다.
+    from app.demo_guard import allowed_user_ids
+
+    if body.user_id not in allowed_user_ids():
+        raise HTTPException(status_code=403, detail="이 시연 배포는 공개된 데모 계정만 수정할 수 있습니다.")
+
     row = db.execute(
         text(
             """
