@@ -78,6 +78,13 @@
   .hero-stats .st .k { font-size: 13px; color: var(--text-muted); }
   .hero-stats .st .v { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; margin-top: 3px; }
 
+  .brief { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: flex-start; }
+  .brief .bi { font-size: 13px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
+    border-radius: 8px; padding: 4px 9px; flex: none; }
+  .brief .bt { font-size: 15px; line-height: 1.65; color: var(--text-muted); }
+  .brief .ba { display: inline-block; margin-top: 7px; font-size: 14px; font-weight: 700; color: var(--text); }
+
   /* 2단 할 일 */
   .todos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
   @media (max-width: 1080px) { .todos { grid-template-columns: minmax(0, 1fr); } }
@@ -256,6 +263,7 @@
       <div class="hero-who" id="heroWho">—</div>
       <div class="hero-line" id="heroLine">불러오는 중…</div>
       <div class="hero-stats" id="heroStats"></div>
+      <div id="brief"></div>
     </div>
 
     <!-- 2단: 지금 하면 좋은 일. 읽기만 하는 대시보드가 아니라 행동으로 이어지게 합니다. -->
@@ -710,6 +718,15 @@
       '<div class="st"><div class="k">다음 입금</div><div class="v num">' + escapeHtml(nextText) + "</div></div>";
   }
 
+  /** 계산된 수치를 문장으로 풀어주는 AI 브리핑. 실패해도 화면에 영향이 없도록
+   *  아무 것도 그리지 않고 조용히 넘어갑니다(백엔드가 템플릿 문장으로 이미 폴백함). */
+  function renderBrief(b) {
+    if (!b || !b.summary) { el("brief").innerHTML = ""; return; }
+    el("brief").innerHTML = '<div class="brief"><span class="bi">AI 브리핑</span>' +
+      '<span><span class="bt">' + escapeHtml(b.summary) + "</span>" +
+      (b.action ? '<span class="ba">→ ' + escapeHtml(b.action) + "</span>" : "") + "</span></div>";
+  }
+
   // ---------- 2단: 할 일 ----------
   /** 각 카드가 "지금 하면 좋은 것" 하나씩입니다. 우선순위가 높은 3개만 보여줍니다. */
   function renderTodos() {
@@ -1027,7 +1044,7 @@
     try { history.replaceState(null, "", "?user=" + uid); } catch (e) {}
 
     el("heroLine").textContent = "불러오는 중…";
-    el("heroStats").innerHTML = ""; el("todos").innerHTML = "";
+    el("heroStats").innerHTML = ""; el("todos").innerHTML = ""; el("brief").innerHTML = "";
     ["shieldSummary", "parking", "income", "gig", "budget", "risk", "expense"].forEach(function (id) {
       el(id).innerHTML = '<div class="skeleton">불러오는 중…</div>';
     });
@@ -1045,6 +1062,7 @@
       el("chartWrap").innerHTML = "";
     });
     get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () {});
+    get("/brief/" + uid).then(renderBrief).catch(function () { el("brief").innerHTML = ""; });
     get("/tax/estimate/" + uid).then(function (t) { state.tax = t; renderParking(); renderTodos(); })
       .catch(function () { state.tax = null; renderParking(); });
     loadIncome(uid).then(renderTodos);

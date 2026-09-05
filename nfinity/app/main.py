@@ -39,7 +39,7 @@ from app.demo_guard import DemoUserGuardMiddleware
 from app.keepalive import start as start_keepalive
 from app.rate_limit import RateLimitMiddleware
 from app.redis_client import ping as redis_ping
-from app.routers import budgets, demo, expense, gig_score, income, risk, shield, tax
+from app.routers import brief, budgets, demo, expense, gig_score, income, risk, shield, tax
 from app.security_headers import (
     SecurityHeadersMiddleware,
     build_security_headers,
@@ -81,6 +81,7 @@ app.include_router(expense.router)
 app.include_router(income.router)
 app.include_router(demo.router)
 app.include_router(tax.router)
+app.include_router(brief.router)
 
 
 @app.on_event("startup")
