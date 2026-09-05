@@ -17,6 +17,7 @@ AI가 조용히 멈췄습니다. 실제로 두 번 겪었습니다.
 import json
 import logging
 import os
+import time
 
 logger = logging.getLogger("nfinity.gemini")
 
@@ -27,6 +28,21 @@ _DEFAULT_CHAIN = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-flash-latest"]
 LAST_CALL_OK = None      # None=아직 호출 전 / True / False
 LAST_CALL_ERROR = ""
 LAST_MODEL_USED = ""
+
+# 차단기(circuit breaker). 한 번 실패하면 이 시각까지는 아예 시도하지 않습니다.
+#
+# 왜 필요한가: 업무경비 분류는 거래 한 건마다 이 함수를 부르고(화면 한 장에 최대 35건),
+# 실패하면 모델 체인을 3개까지 순서대로 시도합니다. Gemini가 503을 내는 동안에는
+# 화면 한 번 그리는 데 실패한 네트워크 왕복이 백 번 가까이 쌓여 응답이 수십 초로 늘어나고,
+# 실패는 캐시되지 않아 새로고침해도 그대로 반복됩니다. 실제로 이 상태에서 Gig Score와
+# 업무경비 카드가 "불러오는 중"에서 멈추는 것을 확인했습니다.
+# 한 번 실패하면 잠시 규칙 기반으로만 답하고, 쿨다운이 지난 뒤 다시 시도합니다.
+COOLDOWN_SECONDS = int(os.environ.get("GEMINI_COOLDOWN_SECONDS", "120"))
+_cooldown_until = 0.0
+
+
+class GeminiCoolingDown(RuntimeError):
+    """직전 실패로 쿨다운 중이라 호출을 건너뛴 경우."""
 
 
 def model_chain() -> list[str]:
@@ -50,7 +66,13 @@ def available() -> bool:
 
 def generate_json(system_instruction: str, contents: str, temperature: float = 0.0) -> dict:
     """JSON 응답을 요구하는 호출. 모델 체인을 순서대로 시도하고, 전부 실패하면 예외를 냅니다."""
-    global LAST_CALL_OK, LAST_CALL_ERROR, LAST_MODEL_USED
+    global LAST_CALL_OK, LAST_CALL_ERROR, LAST_MODEL_USED, _cooldown_until
+
+    now = time.monotonic()
+    if now < _cooldown_until:
+        raise GeminiCoolingDown(
+            "직전 호출 실패로 " + str(int(_cooldown_until - now)) + "초간 규칙 기반으로 동작합니다."
+        )
 
     from google import genai
     from google.genai import types
@@ -74,6 +96,7 @@ def generate_json(system_instruction: str, contents: str, temperature: float = 0
             )
             parsed = json.loads(resp.text)
             LAST_CALL_OK, LAST_CALL_ERROR, LAST_MODEL_USED = True, "", model
+            _cooldown_until = 0.0
             return parsed
         except Exception as exc:
             last_exc = exc
@@ -82,6 +105,7 @@ def generate_json(system_instruction: str, contents: str, temperature: float = 0
     LAST_CALL_OK = False
     LAST_CALL_ERROR = (type(last_exc).__name__ + ": " + str(last_exc))[:200] if last_exc else "unknown"
     LAST_MODEL_USED = ""
+    _cooldown_until = time.monotonic() + COOLDOWN_SECONDS
     raise last_exc if last_exc else RuntimeError("Gemini 호출 실패")
 
 
@@ -96,5 +120,7 @@ def status() -> str:
     if LAST_CALL_OK is True:
         return "gemini (" + LAST_MODEL_USED + ")"
     if LAST_CALL_OK is False:
-        return "fallback (호출 실패: " + LAST_CALL_ERROR[:90] + ")"
+        remain = int(max(0.0, _cooldown_until - time.monotonic()))
+        suffix = " · " + str(remain) + "초 후 재시도" if remain else ""
+        return "fallback (호출 실패: " + LAST_CALL_ERROR[:80] + suffix + ")"
     return "gemini (대기 중 — 아직 호출 없음)"
