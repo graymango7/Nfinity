@@ -154,6 +154,39 @@ def _backtest_recurring(db: Session, user_ids: list[str]) -> dict:
     }
 
 
+@router.get("/gemini")
+def gemini_probe():
+    """어떤 Gemini 모델이 실제로 응답하는지 하나씩 찔러보는 진단용 엔드포인트.
+
+    503(high demand)이 잦아서 "키는 정상인데 호출만 실패"하는 상황이 반복됐는데, 모델별로
+    가용성이 다른지 밖에서는 알 수 없었습니다. 후보 모델을 순서대로 짧게 호출해보고
+    성공/실패와 사유를 그대로 돌려줍니다.
+    """
+    import os
+
+    from app.gemini_client import model_chain
+
+    if not os.environ.get("GEMINI_API_KEY"):
+        return {"available": False, "reason": "GEMINI_API_KEY 없음"}
+
+    from google import genai
+    from google.genai import types
+
+    client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    results = []
+    for model in model_chain():
+        try:
+            r = client.models.generate_content(
+                model=model,
+                contents='{"ping":1} 을 그대로 돌려줘',
+                config=types.GenerateContentConfig(response_mime_type="application/json", temperature=0),
+            )
+            results.append({"model": model, "ok": True, "sample": (r.text or "")[:60]})
+        except Exception as exc:
+            results.append({"model": model, "ok": False, "error": (type(exc).__name__ + ": " + str(exc))[:160]})
+    return {"available": True, "results": results}
+
+
 @router.get("/forecast")
 def forecast_accuracy(db: Session = Depends(get_db)):
     """예측 엔진의 홀드아웃 검증 결과. 시연 인물 전체를 대상으로 계산합니다."""
