@@ -1,0 +1,233 @@
+<!--
+  2026 금융 AI Challenge 기능 명세서 — 공식 양식(첨부2) 항목 구조를 그대로 따릅니다.
+  브라우저에서 열고 Ctrl+P → "PDF로 저장" 하면 제출용 PDF가 됩니다(A4, 여백 기본).
+-->
+<title>Nfinity 기능 명세서</title>
+<style>
+  @page { size: A4; margin: 18mm 16mm; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #14181f; background: #fff;
+    font-family: "Pretendard", -apple-system, "Malgun Gothic", sans-serif;
+    font-size: 10.5pt; line-height: 1.65; letter-spacing: -0.01em; }
+  .doc { max-width: 190mm; margin: 0 auto; padding: 10mm 0; }
+  h1 { font-size: 19pt; margin: 0 0 4mm; letter-spacing: -0.03em; }
+  .meta { width: 100%; border-collapse: collapse; margin-bottom: 8mm; }
+  .meta th, .meta td { border: 1px solid #c9ced6; padding: 2.4mm 3mm; font-size: 10pt; text-align: left; }
+  .meta th { background: #f2f4f6; width: 28mm; font-weight: 600; }
+  h2 { font-size: 12.5pt; margin: 7mm 0 2.5mm; padding-bottom: 1.5mm;
+    border-bottom: 1.6px solid #14181f; letter-spacing: -0.02em; page-break-after: avoid; }
+  h3 { font-size: 11pt; margin: 4.5mm 0 1.5mm; letter-spacing: -0.02em; page-break-after: avoid; }
+  p, li { margin: 0 0 1.8mm; }
+  ul, ol { margin: 0 0 2.5mm; padding-left: 5.5mm; }
+  table.d { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 9.4pt; }
+  table.d th, table.d td { border: 1px solid #c9ced6; padding: 2mm 2.5mm; vertical-align: top; }
+  table.d th { background: #f2f4f6; font-weight: 600; text-align: left; }
+  code { font-family: Consolas, monospace; font-size: 9pt; background: #f2f4f6; padding: 0 1mm; border-radius: 1mm; }
+  .ok { color: #067647; font-weight: 700; }
+  .note { background: #f7f8fa; border-left: 3px solid #8b95a1; padding: 2.5mm 3.5mm; margin: 2.5mm 0; font-size: 9.6pt; }
+  section { page-break-inside: avoid; }
+  ol.flow { counter-reset: s; list-style: none; padding-left: 0; }
+  ol.flow > li { counter-increment: s; padding-left: 8mm; position: relative; margin-bottom: 2.5mm; }
+  ol.flow > li::before { content: counter(s); position: absolute; left: 0; top: 0.3mm;
+    width: 5.5mm; height: 5.5mm; border-radius: 50%; background: #14181f; color: #fff;
+    font-size: 8pt; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+</style>
+
+<div class="doc">
+<h1>2026 금융 AI Challenge 기능 명세서</h1>
+
+<table class="meta">
+  <tr><th>팀명</th><td>Nfinity <span style="color:#8b95a1">(대회 등록 팀명과 동일하게 기재)</span></td></tr>
+  <tr><th>구성원 성명</th><td>이은겸(팀장), 조소현, 하은 <span style="color:#8b95a1">(팀장·팀원 순)</span></td></tr>
+  <tr><th>배포 URL</th><td><b>https://nfinity-ai-o2ok.onrender.com</b> (로그인 불필요)</td></tr>
+</table>
+
+<section>
+<h2>1. MVP 구현 범위</h2>
+<p>아래는 <b>제출 시점에 배포 URL에서 실제로 동작하는 기능만</b> 기재했습니다. 미구현·예정 기능은 제외했습니다.</p>
+<ul>
+  <li><b>현금흐름 예측</b> — 플랫폼별 정산 주기와 반복 지출을 학습해 향후 45일 잔액을 일 단위로 계산하고,
+      최소 안전잔액을 밑도는 날짜를 산출. 정산 지연·수입 감소 두 가지 가정 시나리오 비교 포함.</li>
+  <li><b>세금·건강보험료 추정</b> — 종합소득세(단순경비율 → 기본공제 → 8단계 누진세율 → 지방소득세 → 기납부 3.3% 차감)와
+      건강보험료(요율 7.19% + 장기요양보험료, 직장/지역 구분), 연 2,000만원 기준 도달 전 경고.</li>
+  <li><b>이상거래 탐지</b> — 규칙 엔진 7종 + Isolation Forest 앙상블. 화면에서 결제 상황을 지정해
+      즉시 판정(승인/본인확인/차단)을 받고 근거 규칙을 확인. 판정 결과는 탐지 이력에 기록됨.</li>
+  <li><b>업무경비 자동 분류</b> — 생성형 AI가 거래를 업무/개인으로 분류하고 인정 확률을 산출, 예상 환급액 표시.</li>
+  <li><b>AI 브리핑</b> — 위 계산 결과를 생성형 AI가 2~3문장으로 설명하고 권고 한 줄 제시.</li>
+  <li><b>수입 플랫폼 연결/해제</b> — 연결 시 해당 플랫폼 정산이 예측·세금 계산에 실제로 반영됨.</li>
+  <li><b>예산 관리</b> — 카테고리별 한도 대비 사용률, 임계값 초과 표시.</li>
+  <li><b>Gig Score</b> — 플랫폼 연결 성실도·지출 안정성·업무경비 인정률 기반 1000점 척도 지표.</li>
+</ul>
+</section>
+
+<section>
+<h2>2. 주요 기능 목록</h2>
+<table class="d">
+  <tr>
+    <th style="width:30mm">기능명</th><th>기능 설명</th>
+    <th style="width:28mm">관련 화면</th><th style="width:16mm">구현 상태</th>
+  </tr>
+  <tr><td><b>사례 선택</b></td>
+    <td>시연용 인물 3명 중 선택. 각 카드에 해당 인물의 현금흐름 상태(안전/주의/위험)와 잔고 부족 예상일을 미리 표시.</td>
+    <td>첫 화면</td><td class="ok">완료</td></tr>
+  <tr><td><b>상황 요약</b></td>
+    <td>"9월 26일, 35일 뒤에 잔고가 30만원 아래로 떨어질 것 같아요" 형태의 한 문장 + 현재 잔액 / 세금·건보료 제외 가용액 / 다음 입금.</td>
+    <td>대시보드 상단</td><td class="ok">완료</td></tr>
+  <tr><td><b>AI 브리핑</b></td>
+    <td>계산된 수치를 생성형 AI가 문장으로 설명하고 권고 한 줄 제시. 호출 실패 시 동일 수치의 템플릿 문장으로 자동 대체.</td>
+    <td>대시보드 상단</td><td class="ok">완료</td></tr>
+  <tr><td><b>할 일 카드</b></td>
+    <td>실데이터로 계산한 조치 3건 노출(미연결 플랫폼 연결·건보료 경고·세금 환급/준비·예산 초과).</td>
+    <td>대시보드 상단</td><td class="ok">완료</td></tr>
+  <tr><td><b>45일 현금흐름 예측</b></td>
+    <td>일별 잔액 곡선, 최소 안전잔액선, 부족 예상일 표시. 정산·정기결제 발생일에 표식과 내역 툴팁.</td>
+    <td>현금흐름 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>시나리오 비교</b></td>
+    <td>정산 10일 지연 / 수입 30% 감소 적용 시 부족 시점이 <b>기본 대비 며칠 앞당겨지는지</b> 수치로 표시.</td>
+    <td>현금흐름 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>세금·건보료 전망</b></td>
+    <td>연 사업소득(환산) → 필요경비 → 과세표준·세율 → 산출세액 → 기납부 3.3% → 5월 정산액. 건보료 월액과 2,000만원 기준 경고.</td>
+    <td>현금흐름 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>최소 안전잔액 변경</b></td>
+    <td>값을 저장하면 서버에 반영되고 예측이 즉시 재계산됨.</td>
+    <td>현금흐름 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>플랫폼별 수입</b></td>
+    <td>연결된 플랫폼의 정산 완료액과 건수. 미연결 플랫폼은 별도 안내.</td>
+    <td>수입 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>플랫폼 연결</b></td>
+    <td>연결 시 해당 정산 내역이 드러나고 <b>현금흐름 예측·세금 추정이 재계산</b>됨.</td>
+    <td>수입 탭 / 할 일 카드</td><td class="ok">완료</td></tr>
+  <tr><td><b>Gig Score</b></td>
+    <td>3개 지표 합산 점수, 등급(우수/양호/보통/주의)과 700점 기준선 표시.</td>
+    <td>수입 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>예산 사용률</b></td>
+    <td>카테고리별 지출/한도와 사용률. 80% 이상 주황, 100% 초과 빨강.</td>
+    <td>지출 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>업무경비 자동 분류</b></td>
+    <td>거래별 인정 확률과 태그를 3단계(경비 인정 가능/확인 필요/개인지출 추정)로 표시, 예상 환급액 산출.</td>
+    <td>지출 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>거래 위험도 즉시 검사</b></td>
+    <td>4가지 상황을 클릭하거나 직접 입력해 판정. 결과는 조치(승인/본인확인/차단)와 근거 규칙 목록으로 제시.</td>
+    <td>거래 보안 탭</td><td class="ok">완료</td></tr>
+  <tr><td><b>탐지 이력</b></td>
+    <td>탐지된 이상거래 목록(등급·가맹점·금액·사유·일자)과 종합 위험 점수.</td>
+    <td>거래 보안 탭</td><td class="ok">완료</td></tr>
+</table>
+</section>
+
+<section>
+<h2>3. 사용자 이용 흐름</h2>
+<ol class="flow">
+  <li><b>배포 URL 접속</b> → 서비스 소개와 검증 수치, 시연 인물 3명의 카드가 보인다.
+      각 카드에 현금흐름 상태와 잔고 부족 예상일이 미리 표시되어 무엇을 보게 될지 알 수 있다.</li>
+  <li><b>인물 선택</b>(예: 박지수 · 프리랜서 마케터) → 대시보드로 이동한다.</li>
+  <li><b>상단 요약과 AI 브리핑</b>으로 현재 상황을 한 번에 파악한다.
+      바로 아래 <b>할 일 카드</b>에서 지금 조치할 항목을 확인한다.</li>
+  <li><b>현금흐름 탭</b>에서 45일 예측 곡선을 보고, 시나리오 탭을 눌러
+      정산이 지연되면 부족 시점이 며칠 앞당겨지는지 확인한다. 오른쪽에서 5월 세금과 월 건보료를 확인한다.</li>
+  <li><b>수입 탭</b>에서 미연결 플랫폼을 <b>연결</b>한다 → 정산 내역이 드러나고 예측·세금이 재계산된다.</li>
+  <li><b>지출 탭</b>에서 예산 사용률과 AI가 분류한 업무경비 후보를 확인한다.</li>
+  <li><b>거래 보안 탭</b>에서 상황 카드를 눌러 위험도 판정을 받아본다. 판정은 탐지 이력에 즉시 기록된다.</li>
+  <li>상단 <b>"다른 사례 보기"</b>로 돌아가 다른 인물의 상황과 비교한다.</li>
+</ol>
+</section>
+
+<section>
+<h2>4. AI 및 데이터 처리 방식</h2>
+
+<h3>4-1. AI가 수행하는 역할</h3>
+<table class="d">
+  <tr><th style="width:32mm">구분</th><th>역할</th><th style="width:34mm">입력 → 출력</th></tr>
+  <tr><td><b>생성형 AI</b><br>(Gemini)</td>
+      <td>① 계산 결과를 문장으로 설명하고 권고 제시 ② 거래의 업무경비 인정 가능성 판단</td>
+      <td>① 잔액·가용액·부족예상일·세금·건보료 → 요약문 + 권고<br>② 직업·가맹점·시간대·금액 → 태그 + 인정 확률(%)</td></tr>
+  <tr><td><b>규칙 엔진</b><br>(R001~R007)</td>
+      <td>한도 초과·신규 가맹점·이동 속도·심야 고액·단기 반복·해외 결제 등 명시적 위험 신호 판정</td>
+      <td>거래(금액·시각·가맹점·국가·기기) → 위반 규칙 목록 + 심각도</td></tr>
+  <tr><td><b>Isolation Forest</b></td>
+      <td>규칙이 설계상 잡지 못하는 유형(위치 급변·신규 기기) 탐지</td>
+      <td>금액 z-score·신규기기·직전 거래 거리·가맹점 희소성 → 이상 확률</td></tr>
+  <tr><td><b>통계·규칙 계산</b></td>
+      <td>정산 주기 추정, 반복 결제 탐지, 잔액 시뮬레이션, 세금·건보료 산식</td>
+      <td>정산·거래 이력 → 45일 일별 잔액, 세액, 보험료</td></tr>
+</table>
+
+<h3>4-2. 사용 데이터</h3>
+<ul>
+  <li><b>거래 내역</b> 4,978건 / 35명 — 가맹점·금액·시각·국가·기기. 자체 생성한 가상 데이터(이상거래 정답지 포함).</li>
+  <li><b>플랫폼 정산 내역</b> — 시연 인물별 3개 플랫폼, 90일치. 플랫폼명·유형·정산일·금액.</li>
+  <li><b>제도 데이터</b> — 2026년 종합소득세 누진세율표, 건강보험료율 7.19%, 장기요양보험료율, 단순경비율, 피부양자 기준 2,000만원.</li>
+  <li><b>사용자 설정</b> — 현재 잔액, 최소 안전잔액(화면에서 입력·수정).</li>
+</ul>
+
+<h3>4-3. 개인정보·민감정보 처리</h3>
+<div class="note">
+<b>실제 개인정보를 일절 수집·처리하지 않습니다.</b> 로그인·회원가입이 없고, 실명·연락처·계좌번호·주민등록번호를
+입력받는 화면이 존재하지 않습니다. 화면에 보이는 인물·거래·정산 내역은 전부 시연을 위해 생성한 가상 데이터이며,
+공개된 시연 인물 3명 외의 데이터는 서버에서 접근을 차단합니다.
+생성형 AI에 전달되는 값은 <b>이미 계산이 끝난 수치와 가맹점명뿐</b>이며 식별정보는 포함되지 않습니다.
+</div>
+</section>
+
+<section>
+<h2>5. MVP 검증 방법</h2>
+
+<h3>5-1. 심사자 확인 절차 (계정·설치 불필요)</h3>
+<table class="d">
+  <tr><th style="width:8mm">#</th><th style="width:44mm">확인 항목</th><th>조작</th><th style="width:52mm">예상 결과</th></tr>
+  <tr><td>1</td><td>서비스 접속</td>
+      <td><code>https://nfinity-ai-o2ok.onrender.com</code> 접속</td>
+      <td>소개 화면과 인물 3명 카드. 각 카드에 현금흐름 상태 표시</td></tr>
+  <tr><td>2</td><td>현금흐름 예측</td>
+      <td><b>박지수</b> 카드 클릭</td>
+      <td>"9월 26일, 35일 뒤에 잔고가 30.0만원 아래로 떨어질 것 같아요"<br>현재 잔액 1,450,000원 / 가용액 1,072,847원</td></tr>
+  <tr><td>3</td><td>시나리오 비교</td>
+      <td>현금흐름 탭 → <b>"정산 10일 지연"</b> 클릭</td>
+      <td>곡선이 바뀌고 <b>"기본 대비 27일 앞당겨짐"</b>, 부족 예상일 08/30 표시</td></tr>
+  <tr><td>4</td><td>세금·건보료</td>
+      <td>오른쪽 "세금 · 건강보험료 전망" 확인</td>
+      <td>연 사업소득 55,729,295원 → 필요경비 64% → 과세표준 18,451,088원·15% →
+          산출세액 1,658,429원 → 기납부 1,839,067원 → <b>5월 +180,637원 환급</b>,
+          건보료 월 377,153원 + 2,000만원 기준 초과 경고</td></tr>
+  <tr><td>5</td><td>실제 조작 반영</td>
+      <td>수입 탭 → 미연결 플랫폼 <b>"연결하기"</b> 클릭</td>
+      <td>토스트 안내 후 수입 합계 증가, <b>현금흐름 예측과 세금 추정이 재계산</b>됨
+          (연 사업소득 5,573만 → 6,500만원)</td></tr>
+  <tr><td>6</td><td>이상거래 탐지</td>
+      <td>거래 보안 탭 → <b>"새벽에 금은방에서 큰 금액"</b> 클릭</td>
+      <td><b>결제 차단 · 위험도 100점</b>과 근거 4건(단일 한도 초과·일일 한도 초과·신규 가맹점·심야 고액).
+          오른쪽 탐지 이력에 즉시 추가됨</td></tr>
+  <tr><td>7</td><td>업무경비 분류</td>
+      <td>지출 탭 확인</td>
+      <td>거래별 인정 확률 3단계 표시(예: 어도비 98% 업무용구독/툴, 무신사 12% 개인지출)와 예상 환급액</td></tr>
+  <tr><td>8</td><td>다른 사례</td>
+      <td>상단 <b>"다른 사례 보기"</b> → 김민철 / 이하늘</td>
+      <td>김민철: 안전(부족 예상 없음), 건보료 기준 <b>69% 도달 사전 경고</b><br>
+          이하늘: 위험(9/1 부족 예상), 이상거래 종합 위험 100점</td></tr>
+</table>
+
+<h3>5-2. 실행 환경 및 제한사항</h3>
+<ul>
+  <li><b>브라우저</b>: Chrome·Edge·Safari 최신 버전 기준으로 확인했습니다. 별도 설치·계정·플러그인이 필요 없습니다.</li>
+  <li><b>화면</b>: 데스크톱 기준으로 설계했으며, 좁은 화면에서도 세로로 재배치되어 동작합니다.</li>
+  <li><b>첫 접속 지연</b>: 무료 호스팅 특성상 장시간 유휴 후 첫 요청이 지연될 수 있어, 서비스가 스스로 주기적으로
+      깨어 있도록 구성했습니다. 만약 첫 화면이 늦게 뜨면 잠시 후 새로고침해 주십시오.</li>
+  <li><b>날짜 기준</b>: 시연 데이터의 마지막 거래일(2026-08-22)을 "오늘"로 고정합니다.
+      실제 달력 날짜와 무관하게 심사 기간 중 항상 동일한 결과가 재현되도록 하기 위함입니다.</li>
+</ul>
+
+<h3>5-3. MVP 단계의 제한사항</h3>
+<ul>
+  <li><b>데이터</b>: 오픈뱅킹·마이데이터 연동 전이라 잔액은 사용자가 입력한 값을 기준점으로 사용하며,
+      거래·정산 내역은 시연용 가상 데이터입니다.</li>
+  <li><b>세금·보험료</b>: 확정 금액이 아닌 추정치입니다. 인적공제·세액공제·타 소득, 건강보험료의 재산·자동차 점수는
+      반영하지 않았습니다.</li>
+  <li><b>Gig Score</b>: 자체 정의 지표이며 금융기관의 신용점수가 아닙니다.</li>
+  <li><b>인증</b>: 공개 시연을 위해 로그인이 없습니다. 대신 공개된 시연 인물 3명 외의 데이터는
+      서버에서 접근을 차단하고 있으며, 실서비스 전환 시 세션 기반 인가가 선행되어야 합니다.</li>
+  <li><b>생성형 AI</b>: 외부 API에 의존하므로 일시적 장애 시 동일 수치의 규칙·템플릿 결과로 자동 대체됩니다
+      (기능이 중단되지 않으며, 표시되는 금액은 어느 경우에도 동일합니다).</li>
+</ul>
+</section>
+
+</div>
