@@ -613,7 +613,14 @@
         q.filter(function (t) { return t.prob >= 50; }).length + "건</div></div>" +
       '<div><div class="label">예상 환급액</div><div class="metric-sm num">' + won(x.current_estimated_refund) + "</div></div></div>";
     if (!q.length) { el("expense").innerHTML = head + '<div class="skeleton">분류할 거래가 없습니다.</div>'; return; }
-    el("expense").innerHTML = head + '<div class="list">' + q.slice(0, 6).map(function (t) {
+    // 이 목록은 "업무경비 후보"만이 아니라 최근 거래 전체의 분류 결과입니다. 제목만 보고
+    // 유흥업소 같은 개인지출까지 경비 후보로 오해할 수 있어, 무엇을 보는 목록인지 밝히고
+    // 인정 확률이 높은 것부터 정렬합니다(50% 이상이 경비 후보).
+    q = q.slice().sort(function (a, b) { return (b.prob || 0) - (a.prob || 0); });
+    el("expense").innerHTML = head +
+      '<div class="label" style="margin-bottom:6px">최근 거래 ' + q.length +
+      '건의 분류 결과 · 50% 이상이 경비 후보입니다</div>' +
+      '<div class="list">' + q.map(function (t) {
       return '<div class="list-row">' +
         '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(t.merchant) + "</span>" +
         '<span class="label">' + escapeHtml(t.ai_tag) + "</span></span>" +
