@@ -218,6 +218,33 @@ def classify_one(job: str, merchant: str, hour: int, amount: int) -> dict:
     return dict(_call_gemini_cached(job, merchant, time_period, int(amount)))
 
 
+def _redis_key(job: str, merchant: str, time_period: str, amount: int) -> str:
+    # 금액은 만원 단위로 뭉쳐서 캐시 적중률을 높입니다(같은 가맹점·같은 시간대면 금액이
+    # 조금 달라도 업무경비 여부 판단은 거의 같습니다).
+    return f"exp:{job}:{merchant}:{time_period}:{amount // 10000}"
+
+
+def _cache_get(key: str):
+    try:
+        from app.redis_client import get_redis_client
+
+        raw = get_redis_client().get(key)
+        return json.loads(raw) if raw else None
+    except Exception:
+        return None
+
+
+def _cache_set(key: str, value: dict) -> None:
+    try:
+        from app.redis_client import get_redis_client
+
+        # 만료를 두지 않습니다 — 한 번 분류한 결과는 계속 재사용해서, 할당량이 소진되거나
+        # 서버가 재시작돼도 화면에는 계속 실제 LLM 결과가 보이게 합니다.
+        get_redis_client().set(key, json.dumps(value, ensure_ascii=False))
+    except Exception:
+        pass
+
+
 @lru_cache(maxsize=512)
 def _call_gemini_cached(job: str, merchant: str, time_period: str, amount: int) -> tuple:
     """같은 조건이면 같은 답이 나오므로 결과를 캐싱합니다. (9/5 추가)
@@ -230,7 +257,20 @@ def _call_gemini_cached(job: str, merchant: str, time_period: str, amount: int) 
     dict는 캐시가 불가능해서(해시 불가) 항목 튜플로 저장했다가 호출부에서 다시 dict로
     만듭니다. 프로세스 메모리에만 남고 재시작하면 비워집니다.
     """
-    return tuple(call_gemini(job, merchant, time_period, amount).items())
+    # 프로세스 캐시(lru_cache)는 재시작하면 사라지므로, 그 앞에 Redis 영구 캐시를 둡니다.
+    key = _redis_key(job, merchant, time_period, amount)
+    cached = _cache_get(key)
+    if cached:
+        return tuple(cached.items())
+
+    result = call_gemini(job, merchant, time_period, amount)
+    # 규칙 폴백 결과는 저장하지 않습니다 — 나중에 할당량이 회복됐을 때 실제 LLM 결과로
+    # 채워질 수 있어야 하기 때문입니다.
+    from app.gemini_client import LAST_CALL_OK
+
+    if LAST_CALL_OK:
+        _cache_set(key, result)
+    return tuple(result.items())
 
 
 # ==========================================================

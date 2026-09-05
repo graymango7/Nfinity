@@ -22,7 +22,18 @@ import time
 logger = logging.getLogger("nfinity.gemini")
 
 # 앞에서부터 시도합니다. 환경변수 GEMINI_MODEL을 주면 그 모델을 최우선으로 씁니다.
-_DEFAULT_CHAIN = ["gemini-3.6-flash", "gemini-2.5-flash", "gemini-flash-latest"]
+# 9/6 진단(/api/v1/validation/gemini)으로 확인한 것:
+#   gemini-2.5-flash → 404 (이미 서비스 종료)  … 체인에서 제거
+#   gemini-3.6-flash → 429 (무료 할당량 소진)
+#   gemini-flash-latest → 503 (일시 과부하)
+# 종료된 모델을 계속 시도하는 건 실패 시간만 늘리므로 빼고, 경량 모델을 뒤에 둡니다.
+# 경량 모델은 할당량이 따로 잡히는 경우가 있어 주 모델이 429일 때 살아있을 수 있습니다.
+_DEFAULT_CHAIN = [
+    "gemini-3.6-flash",
+    "gemini-flash-latest",
+    "gemini-3.6-flash-lite",
+    "gemini-flash-lite-latest",
+]
 
 # 마지막 호출 결과 — /health가 읽습니다.
 LAST_CALL_OK = None      # None=아직 호출 전 / True / False
