@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>수입 플랫폼 연결 — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .connect-hero{padding:32px 26px 6px;}
+  .connect-eyebrow{font-size:11.5px; font-weight:800; color:var(--mint-deep); letter-spacing:.03em;}
+  .connect-title{font-size:20px; font-weight:800; margin-top:8px; letter-spacing:-.01em; line-height:1.4;}
+  .connect-sub{font-size:12.5px; color:var(--ink-soft); margin-top:8px; line-height:1.6;}
+
+  .mydata-note{
+    margin:18px 20px 0; display:flex; gap:9px; align-items:flex-start; background:var(--teal-pale);
+    color:#0A7C93; border-radius:var(--radius-sm); padding:12px 14px; font-size:11px; font-weight:600; line-height:1.6;
+  }
+  .mydata-note svg{width:15px; height:15px; flex:none; margin-top:1px;}
+
+  .platform-cards{padding:16px 20px 32px; display:flex; flex-direction:column; gap:10px;}
+  .p-card{
+    background:var(--card); border-radius:var(--radius-sm); padding:16px 16px;
+    box-shadow:0 6px 18px -12px rgba(20,35,31,.18); display:flex; align-items:center; gap:13px;
+    transition:box-shadow .2s;
+  }
+  .p-icon{width:44px; height:44px; border-radius:13px; background:var(--mint-pale); display:flex; align-items:center; justify-content:center; font-size:20px; flex:none;}
+  .p-mid{flex:1; min-width:0;}
+  .p-name{font-size:13.5px; font-weight:800;}
+  .p-type{font-size:11px; color:var(--ink-faint); font-weight:600; margin-top:2px;}
+  .p-status{font-size:11px; font-weight:700; margin-top:5px;}
+  .p-status.connected{color:var(--mint-deep);}
+  .p-status.pending{color:var(--ink-faint);}
+
+  .p-action{flex:none;}
+  .btn-connect{
+    background:var(--mint-deep); color:#fff; font-size:11.5px; font-weight:800; padding:9px 15px;
+    border-radius:99px; border:none; cursor:pointer; white-space:nowrap;
+  }
+  .btn-connect:active{transform:scale(.96);}
+  .btn-connect.loading{background:var(--ink-faint); pointer-events:none;}
+  .btn-done{
+    display:flex; align-items:center; gap:5px; color:var(--mint-deep); font-size:11.5px; font-weight:800;
+  }
+  .btn-done svg{width:15px; height:15px;}
+  .p-done-col{display:flex; flex-direction:column; align-items:flex-end; gap:6px;}
+  .btn-disconnect{
+    background:none; border:none; color:var(--ink-faint); font-size:10.5px; font-weight:700;
+    cursor:pointer; padding:2px 0; text-decoration:underline;
+  }
+
+  .reveal-toast{
+    margin:0 20px 18px; background:var(--mint); color:#fff; border-radius:var(--radius-sm);
+    padding:13px 16px; font-size:12px; font-weight:700; display:none; align-items:center; gap:9px;
+    animation:pop .25s ease-out;
+  }
+  .reveal-toast.show{display:flex;}
+  @keyframes pop{from{transform:scale(.92); opacity:0;} to{transform:scale(1); opacity:1;}}
+
+  .done-footer{padding:0 22px 30px; text-align:center;}
+  .go-home-btn{
+    display:inline-block; background:var(--ink); color:#fff; font-size:13px; font-weight:800;
+    padding:13px 28px; border-radius:99px;
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div>
+        <div class="persona-name"></div>
+        <div class="persona-job"></div>
+      </div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="connect-hero">
+    <div class="connect-eyebrow">수입 플랫폼 연결</div>
+    <div class="connect-title">벌고 있는 곳을 전부<br/>연결해두면, 다 알아서 모아드려요</div>
+    <div class="connect-sub">배달앱, 프리랜서 플랫폼, 급여 계좌… 흩어진 수입을 한 곳에서 보는 게 첫걸음이에요.</div>
+  </div>
+
+  <div class="mydata-note">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M12 15V15.01M12 8V12M4.9 19H19.1C20.1 19 20.75 17.93 20.25 17.06L12.15 3.06C11.65 2.2 10.35 2.2 9.85 3.06L1.75 17.06C1.25 17.93 1.9 19 2.9 19H4.9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
+    실제 계좌·오픈뱅킹 연동은 이번 데모 범위 밖이에요. "연결하기"를 누르면 가상 정산 데이터로 그 흐름만 미리 보여드려요. 연결된 플랫폼은 언제든 "연결 해제"로 다시 숨길 수 있어요.
+  </div>
+
+  <div id="revealToast" class="reveal-toast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 13L9.5 17.5L19 7" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span id="revealText"></span>
+  </div>
+
+  <div id="platformList" class="platform-cards">
+    <div class="state-box"><div class="spinner"></div>연결 가능한 플랫폼을 찾는 중...</div>
+  </div>
+
+  <div class="done-footer">
+    <a class="go-home-btn" href="#" id="goHomeBtn">홈으로 돌아가기</a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  const uid = qs("user_id");
+
+  function statusLine(s) {
+    if (s.connected) return `<div class="p-status connected">연결됨</div>`;
+    if (s.pending_event_count > 0) return `<div class="p-status pending">연결하면 최근 ${s.pending_event_count}건이 보여요</div>`;
+    return `<div class="p-status pending">연결 대기중</div>`;
+  }
+
+  function actionHtml(s) {
+    if (s.connected) {
+      return `<div class="p-done-col">
+        <div class="btn-done"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="var(--mint-pale)"/><path d="M7 12.5L10.2 15.7L17 8.5" stroke="var(--mint-deep)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>완료</div>
+        <button class="btn-disconnect" data-source="${s.source_id}">연결 해제</button>
+      </div>`;
+    }
+    return `<button class="btn-connect" data-source="${s.source_id}">연결하기</button>`;
+  }
+
+  function renderList(sources) {
+    document.getElementById("platformList").innerHTML = sources
+      .map(
+        (s) => `
+      <div class="p-card" id="card-${s.source_id}">
+        <div class="p-icon">${escapeHtml(s.icon_emoji)}</div>
+        <div class="p-mid">
+          <div class="p-name">${escapeHtml(s.platform_name)}</div>
+          <div class="p-type">${escapeHtml(s.platform_type)}</div>
+          ${statusLine(s)}
+        </div>
+        <div class="p-action">${actionHtml(s)}</div>
+      </div>`
+      )
+      .join("");
+
+    document.querySelectorAll(".btn-connect").forEach((btn) => {
+      btn.addEventListener("click", () => onConnectClick(btn));
+    });
+    document.querySelectorAll(".btn-disconnect").forEach((btn) => {
+      btn.addEventListener("click", () => onDisconnectClick(btn));
+    });
+  }
+
+  async function onConnectClick(btn) {
+    const sourceId = btn.dataset.source;
+    btn.textContent = "연결하는 중...";
+    btn.classList.add("loading");
+    // 실제 마이데이터 연동의 "계좌 조회 중..." 체감을 흉내내는 연출용 대기입니다.
+    // (백엔드는 이미 준비된 데이터를 그대로 반영만 하므로 즉시 끝나지만, 너무 즉각적이면
+    // 오히려 "진짜 연동처럼" 느껴지지 않아서 일부러 짧게 기다립니다.)
+    await new Promise((r) => setTimeout(r, 1100));
+
+    let result;
+    try {
+      result = await apiPost(`/api/v1/income/sources/${sourceId}/connect?user_id=${encodeURIComponent(uid)}`);
+    } catch (e) {
+      btn.textContent = "다시 시도";
+      btn.classList.remove("loading");
+      return;
+    }
+
+    const card = document.getElementById(`card-${sourceId}`);
+    const statusEl = card.querySelector(".p-status");
+    const actionEl = card.querySelector(".p-action");
+    statusEl.textContent = "연결됨";
+    statusEl.className = "p-status connected";
+    actionEl.innerHTML = actionHtml({ connected: true, source_id: sourceId });
+    document.querySelectorAll(`.btn-disconnect[data-source="${sourceId}"]`).forEach((b) =>
+      b.addEventListener("click", () => onDisconnectClick(b))
+    );
+
+    const toast = document.getElementById("revealToast");
+    document.getElementById("revealText").textContent =
+      `${result.platform_name} 연결 완료! 최근 ${result.revealed_event_count}건의 정산 내역을 찾았어요.`;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+
+  // 9/2 세 번째 업데이트 — 기획서 8번 "사용자가 연결 해제할 수 있는 화면" 반영.
+  async function onDisconnectClick(btn) {
+    const sourceId = btn.dataset.source;
+    btn.textContent = "해제하는 중...";
+    btn.disabled = true;
+
+    let result;
+    try {
+      result = await apiPost(`/api/v1/income/sources/${sourceId}/disconnect?user_id=${encodeURIComponent(uid)}`);
+    } catch (e) {
+      btn.textContent = "다시 시도";
+      btn.disabled = false;
+      return;
+    }
+
+    const card = document.getElementById(`card-${sourceId}`);
+    const statusEl = card.querySelector(".p-status");
+    const actionEl = card.querySelector(".p-action");
+    statusEl.textContent = "연결 대기중";
+    statusEl.className = "p-status pending";
+    actionEl.innerHTML = actionHtml({ connected: false, source_id: sourceId });
+    document.querySelectorAll(`.btn-connect[data-source="${sourceId}"]`).forEach((b) =>
+      b.addEventListener("click", () => onConnectClick(b))
+    );
+
+    const toast = document.getElementById("revealToast");
+    document.getElementById("revealText").textContent = `${result.platform_name} 연결을 해제했어요. 다시 연결하면 데이터가 그대로 돌아와요.`;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 3200);
+  }
+
+  async function load() {
+    try {
+      const sources = await apiGet(`/api/v1/income/sources?user_id=${encodeURIComponent(uid)}`);
+      renderList(sources);
+    } catch (e) {
+      document.getElementById("platformList").innerHTML = errorHtml(e.message);
+    }
+  }
+
+  renderPersonaBar();
+  document.getElementById("goHomeBtn").href = withPersonaParams("/home.html");
+  load();
+</script>
+</body>
+</html>

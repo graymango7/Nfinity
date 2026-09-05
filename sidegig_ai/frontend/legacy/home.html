@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>홈 — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .greeting{padding:18px 22px 0;}
+  .greeting-name{font-size:19px; font-weight:800; letter-spacing:-.01em;}
+  .greeting-sub{font-size:12.5px; color:var(--ink-soft); margin-top:4px; line-height:1.5;}
+
+  /* Risk Shield 히어로 (9/2 세 번째 업데이트 — 기획서 4번의 대표 기능을 홈 최상단으로) */
+  .shield-hero{
+    margin:16px 20px 0; border-radius:var(--radius); padding:22px; color:#fff;
+    box-shadow:0 12px 26px -14px rgba(20,35,31,.35);
+  }
+  .shield-hero.lvl-안전{background:linear-gradient(155deg, var(--mint-deep), var(--mint));}
+  .shield-hero.lvl-주의{background:linear-gradient(155deg, #C97A0A, var(--warning));}
+  .shield-hero.lvl-위험{background:linear-gradient(155deg, #C43D3D, var(--danger));}
+  .shield-top-row{display:flex; align-items:center; justify-content:space-between;}
+  .shield-badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; padding:5px 11px; border-radius:99px; background:rgba(255,255,255,.22);}
+  .shield-more{font-size:11px; font-weight:800; opacity:.9;}
+  .shield-cash-label{font-size:11.5px; font-weight:700; opacity:.85; margin-top:16px;}
+  .shield-cash{font-size:28px; font-weight:800; letter-spacing:-.02em; margin-top:4px;}
+  .shield-warn{font-size:12px; font-weight:700; margin-top:10px; line-height:1.5; background:rgba(255,255,255,.16); border-radius:12px; padding:9px 11px;}
+
+  /* Gig Score 카드 (9/2 세 번째 업데이트: 히어로에서 보조 카드로 축소 —
+     기획서 5-4가 "Gig-Score는 MVP 이후 별도 검증·규제 검토 대상"이라고 명시한 만큼,
+     신용평가/대출과 무관한 참고 지표라는 점을 시각적으로도 낮춰서 표현합니다.) */
+  .score-card{
+    margin:14px 20px 0; background:var(--card); border-radius:var(--radius);
+    padding:18px 20px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);
+  }
+  .score-top{display:flex; align-items:center; gap:16px;}
+  .gauge-wrap{position:relative; width:72px; height:72px; flex:none;}
+  .gauge{width:72px; height:72px; border-radius:50%;}
+  .gauge-hole{
+    position:absolute; inset:9px; background:var(--card); border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .gauge-hole .score-num{font-size:17px; font-weight:800; letter-spacing:-.02em; color:var(--ink);}
+  .gauge-hole .score-max{font-size:8px; opacity:.6; font-weight:700; margin-top:-2px; color:var(--ink-faint);}
+  .score-mid{flex:1; min-width:0;}
+  .score-label{font-size:10px; font-weight:800; opacity:.6; letter-spacing:.03em; color:var(--ink-faint);}
+  .score-status{font-size:13px; font-weight:800; margin-top:4px; line-height:1.4;}
+  .score-chips{display:flex; gap:5px; margin-top:12px; flex-wrap:wrap;}
+  .score-chip{
+    font-size:10px; font-weight:700; padding:4px 9px; border-radius:99px;
+    background:var(--bg); color:var(--ink-soft);
+  }
+  .score-disclaimer{font-size:10px; color:var(--ink-faint); font-weight:600; margin-top:10px; line-height:1.5;}
+
+  /* 이번 주 수입 요약 카드 */
+  .income-card{
+    margin:14px 20px 0; background:var(--card); border-radius:var(--radius);
+    padding:22px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);
+  }
+  .income-head{display:flex; align-items:baseline; justify-content:space-between;}
+  .income-title{font-size:14px; font-weight:700;}
+  .income-period{font-size:11px; color:var(--ink-faint); font-weight:700;}
+  .income-total{font-size:26px; font-weight:800; margin-top:8px; letter-spacing:-.02em;}
+  .income-upcoming{font-size:12px; color:var(--ink-soft); margin-top:3px;}
+  .income-upcoming b{color:var(--mint-deep); font-weight:800;}
+
+  .platform-list{display:flex; flex-direction:column; gap:8px; margin-top:16px;}
+  .platform-row{display:flex; align-items:center; gap:11px; padding:10px 0; border-top:1px solid var(--line);}
+  .platform-icon{width:32px; height:32px; border-radius:10px; background:var(--mint-pale); display:flex; align-items:center; justify-content:center; font-size:15px; flex:none;}
+  .platform-mid{flex:1; min-width:0;}
+  .platform-name{font-size:12.5px; font-weight:700;}
+  .platform-type{font-size:10.5px; color:var(--ink-faint); font-weight:600; margin-top:1px;}
+  .platform-amount{font-size:13px; font-weight:800;}
+
+  .connect-banner{
+    margin-top:16px; display:flex; align-items:center; gap:12px; background:var(--mint-pale);
+    border-radius:var(--radius-sm); padding:14px 16px;
+  }
+  .connect-banner-text{flex:1; font-size:12px; font-weight:700; color:var(--mint-deep); line-height:1.5;}
+  .connect-banner-btn{
+    flex:none; background:var(--mint-deep); color:#fff; font-size:11.5px; font-weight:800;
+    padding:9px 14px; border-radius:99px;
+  }
+
+  .checklist-card{
+    margin:14px 20px 28px; background:var(--card); border-radius:var(--radius);
+    padding:20px 22px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);
+  }
+  .checklist-title{font-size:13.5px; font-weight:700; margin-bottom:12px;}
+  .checklist-row{display:flex; align-items:center; gap:11px; padding:9px 0;}
+  .checklist-row + .checklist-row{border-top:1px solid var(--line);}
+  .check-dot{
+    width:22px; height:22px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center;
+    font-size:11px; font-weight:800;
+  }
+  .check-dot.ok{background:var(--mint-pale); color:var(--mint-deep);}
+  .check-dot.warn{background:var(--warning-pale); color:#B0710A;}
+  .checklist-text{font-size:12.5px; font-weight:600; flex:1;}
+  .checklist-link{font-size:11px; font-weight:800; color:var(--mint-deep);}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div>
+        <div class="persona-name"></div>
+        <div class="persona-job"></div>
+      </div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    가상 데이터 데모 · 실제 API 응답을 그대로 표시합니다
+  </div>
+
+  <div class="greeting">
+    <div class="greeting-name" id="greetingName">오늘도 수고 많으셨어요</div>
+    <div class="greeting-sub">여러 곳에서 들어오는 수입을 한 장으로 정리했어요. 오늘은 이것만 보면 돼요.</div>
+  </div>
+
+  <div id="shieldSection"><div class="state-box"><div class="spinner"></div>Risk Shield 계산 중...</div></div>
+  <div id="scoreSection"><div class="state-box"><div class="spinner"></div>Gig Score 불러오는 중...</div></div>
+  <div id="incomeSection"></div>
+  <div id="checklistSection"></div>
+
+  <div class="navbar">
+    <a class="nav-item" data-nav="/home.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19C20 19.55 19.55 20 19 20H5C4.45 20 4 19.55 4 19V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      홈
+    </a>
+    <a class="nav-item" data-nav="/shield.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      쉴드
+    </a>
+    <a class="nav-item" data-nav="/budget.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </a>
+    <a class="nav-item" data-nav="/risk.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 003.54 21H20.46A2 2 0 0022.18 18L13.71 3.86A2 2 0 0010.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      이상거래
+    </a>
+    <a class="nav-item" data-nav="/expense.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  function scoreStatus(score) {
+    if (score >= 700) return { text: "아주 꾸준히 잘 챙기고 있어요", hue: "😊" };
+    if (score >= 450) return { text: "괜찮아요, 조금만 더 챙기면 완벽해요", hue: "🙂" };
+    return { text: "아직 연결/정리할 게 좀 남았어요", hue: "🌱" };
+  }
+
+  async function loadShield() {
+    const uid = qs("user_id");
+    let d;
+    try {
+      d = await apiGet(`/api/v1/shield/${encodeURIComponent(uid)}`);
+    } catch (e) {
+      document.getElementById("shieldSection").innerHTML = errorHtml(e.message);
+      return;
+    }
+    const warnHtml = d.minimum_balance_date
+      ? `<div class="shield-warn">⚠️ ${d.minimum_balance_date} 무렵 최소 안전잔액 아래로 내려갈 것으로 예상돼요.</div>`
+      : `<div class="shield-warn">✅ 앞으로 45일 동안 최소 안전잔액 아래로 내려가지 않을 것으로 예상돼요.</div>`;
+    document.getElementById("shieldSection").innerHTML = `
+      <a class="shield-hero lvl-${d.risk_level}" href="${withPersonaParams("/shield.html")}" style="display:block;">
+        <div class="shield-top-row">
+          <span class="shield-badge">🛡️ Risk Shield · ${d.risk_level}</span>
+          <span class="shield-more">자세히 →</span>
+        </div>
+        <div class="shield-cash-label">지금 실제로 쓸 수 있는 돈 (세금·건보료 준비금 제외)</div>
+        <div class="shield-cash num">${fmtWon(d.available_cash)}</div>
+        ${warnHtml}
+      </a>`;
+  }
+
+  async function loadScore() {
+    const uid = qs("user_id");
+    let data;
+    try {
+      data = await apiGet(`/api/v1/gig-score/${encodeURIComponent(uid)}`);
+    } catch (e) {
+      document.getElementById("scoreSection").innerHTML = errorHtml(e.message);
+      return;
+    }
+    const pct = Math.min(data.score / 1000, 1) * 100;
+    const status = scoreStatus(data.score);
+    const c = data.components || {};
+    document.getElementById("scoreSection").innerHTML = `
+      <div class="score-card">
+        <div class="score-top">
+          <div class="gauge-wrap">
+            <div class="gauge" style="background:conic-gradient(var(--mint) ${pct}%, var(--line) ${pct}%)"></div>
+            <div class="gauge-hole">
+              <div class="score-num num">${data.score}</div>
+              <div class="score-max">/ 1000점</div>
+            </div>
+          </div>
+          <div class="score-mid">
+            <div class="score-label">GIG SCORE (참고 지표)</div>
+            <div class="score-status">${status.hue} ${escapeHtml(status.text)}</div>
+          </div>
+        </div>
+        <div class="score-chips">
+          <span class="score-chip">플랫폼 연결 ${fmtPct(c.platform_connect_rate || 0)}</span>
+          <span class="score-chip">지출 안정성 ${fmtPct(c.spending_stability || 0)}</span>
+          <span class="score-chip">경비 인정률 ${fmtPct(c.expense_diligence || 0)}</span>
+        </div>
+        <div class="score-disclaimer">신용평가·대출 심사에는 사용되지 않는 참고용 지표예요. 수입 플랫폼 연결, 지출 안정성, 업무경비 인정률을 종합했어요.</div>
+      </div>`;
+
+    document.getElementById("checklistSection").innerHTML = `
+      <div class="checklist-card">
+        <div class="checklist-title">오늘 확인할 것</div>
+        <div class="checklist-row">
+          <div class="check-dot ${(c.platform_connect_rate || 0) >= 1 ? "ok" : "warn"}">${(c.platform_connect_rate || 0) >= 1 ? "✓" : "!"}</div>
+          <div class="checklist-text">${(c.platform_connect_rate || 0) >= 1 ? "모든 수입 플랫폼이 연결돼 있어요" : "아직 연결 안 한 수입 플랫폼이 있어요"}</div>
+          ${(c.platform_connect_rate || 0) >= 1 ? "" : `<a class="checklist-link" href="${withPersonaParams("/connect.html")}">연결하기</a>`}
+        </div>
+        <div class="checklist-row">
+          <div class="check-dot ${(c.expense_diligence || 0) >= 0.5 ? "ok" : "warn"}">${(c.expense_diligence || 0) >= 0.5 ? "✓" : "!"}</div>
+          <div class="checklist-text">${(c.expense_diligence || 0) >= 0.5 ? "경비 인정률이 절반 이상이에요" : "절세장부에서 경비 인정 가능한 거래를 더 챙겨보세요"}</div>
+          <a class="checklist-link" href="${withPersonaParams("/expense.html")}">절세장부</a>
+        </div>
+      </div>`;
+  }
+
+  async function loadIncome() {
+    const uid = qs("user_id");
+    let summary;
+    try {
+      summary = await apiGet(`/api/v1/income/summary?user_id=${encodeURIComponent(uid)}&period=week`);
+    } catch (e) {
+      document.getElementById("incomeSection").innerHTML = `<div class="income-card">${errorHtml(e.message)}</div>`;
+      return;
+    }
+
+    const platformRows = summary.by_platform.length
+      ? summary.by_platform
+          .map(
+            (p) => `
+        <div class="platform-row">
+          <div class="platform-icon">${escapeHtml(p.icon_emoji)}</div>
+          <div class="platform-mid">
+            <div class="platform-name">${escapeHtml(p.platform_name)}</div>
+            <div class="platform-type">${escapeHtml(p.platform_type)} · ${p.event_count}건</div>
+          </div>
+          <div class="platform-amount num">${fmtWon(p.total_amount)}</div>
+        </div>`
+          )
+          .join("")
+      : `<div class="state-box" style="margin:16px 0 0;">이번 주에 들어온 정산이 아직 없어요.</div>`;
+
+    const banner =
+      summary.unconnected_source_count > 0
+        ? `<div class="connect-banner">
+             <div class="connect-banner-text">아직 연결 안 한 수입 플랫폼이 ${summary.unconnected_source_count}개 있어요. 연결하면 여기서 같이 볼 수 있어요.</div>
+             <a class="connect-banner-btn" href="${withPersonaParams("/connect.html")}">연결하기</a>
+           </div>`
+        : "";
+
+    document.getElementById("incomeSection").innerHTML = `
+      <div class="income-card">
+        <div class="income-head">
+          <div class="income-title">수입 요약</div>
+          <div class="income-period">${escapeHtml(summary.period_label)}</div>
+        </div>
+        <div class="income-total num">${fmtWon(summary.total_settled)}</div>
+        <div class="income-upcoming">정산 예정 <b class="num">${fmtWon(summary.total_upcoming)}</b> 더 들어올 예정이에요</div>
+        <div class="platform-list">${platformRows}</div>
+        ${banner}
+      </div>`;
+  }
+
+  renderPersonaBar();
+  document.getElementById("greetingName").textContent = `${qs("name", "게스트")}님, 오늘도 수고 많으셨어요`;
+  loadShield();
+  loadScore();
+  loadIncome();
+</script>
+</body>
+</html>

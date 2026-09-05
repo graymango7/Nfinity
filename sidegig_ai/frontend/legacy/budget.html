@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>예산통제 — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .summary-card{
+    margin:16px 20px 0; background:var(--card); border-radius:var(--radius);
+    padding:26px 22px 22px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);
+  }
+  .summary-title{font-size:14px; font-weight:700; color:var(--ink);}
+  .summary-sub{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .donut-row{display:flex; align-items:center; gap:22px; margin-top:18px;}
+  .donut-wrap{position:relative; width:148px; height:148px; flex:none;}
+  .donut{width:148px; height:148px; border-radius:50%;}
+  .donut-hole{
+    position:absolute; inset:22px; background:var(--card); border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .donut-hole .label{font-size:10px; color:var(--ink-faint); font-weight:700; letter-spacing:.04em;}
+  .donut-hole .amount{font-size:18px; font-weight:800; margin-top:2px; letter-spacing:-.02em; text-align:center;}
+  .legend{display:flex; flex-direction:column; gap:10px; flex:1;}
+  .legend-row{display:flex; align-items:center; gap:9px; font-size:12.5px;}
+  .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .legend-name{color:var(--ink); font-weight:500; flex:1;}
+  .legend-pct{color:var(--ink-faint); font-weight:700; font-size:12px;}
+
+  .budget-list{padding:0 20px; display:flex; flex-direction:column; gap:10px;}
+  .budget-card{background:var(--card); border-radius:var(--radius-sm); padding:16px 18px; box-shadow:0 4px 14px -10px rgba(20,35,31,.18);}
+  .budget-card-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .budget-cat{display:flex; align-items:center; gap:9px;}
+  .cat-icon{width:30px; height:30px; border-radius:9px; background:var(--mint-pale); display:flex; align-items:center; justify-content:center; font-size:14px; flex:none;}
+  .cat-name{font-size:13.5px; font-weight:700;}
+  .cat-amounts{font-size:12px; color:var(--ink-faint); text-align:right;}
+  .cat-amounts b{color:var(--ink); font-weight:700;}
+  .bar-track{height:7px; border-radius:99px; background:var(--line); overflow:hidden; margin-bottom:9px;}
+  .bar-fill{height:100%; border-radius:99px;}
+  .budget-card-bottom{display:flex; align-items:center; justify-content:space-between;}
+  .threshold-pills{display:flex; gap:6px; flex-wrap:wrap;}
+  .rate-tag{font-size:11.5px; font-weight:800;}
+
+  .recur-list{padding:0 20px 28px; display:flex; flex-direction:column; gap:8px;}
+  .recur-row{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:var(--radius-sm); padding:13px 16px; box-shadow:0 4px 14px -10px rgba(20,35,31,.14);}
+  .recur-icon{width:34px; height:34px; border-radius:10px; background:var(--mint-pale); color:var(--mint-deep); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex:none;}
+  .recur-mid{flex:1; min-width:0;}
+  .recur-name{font-size:13px; font-weight:700;}
+  .recur-date{font-size:11px; color:var(--ink-faint); margin-top:1px;}
+  .recur-amount{font-size:13.5px; font-weight:800;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div>
+        <div class="persona-name"></div>
+        <div class="persona-job"></div>
+      </div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    가상 데이터 데모 · 실제 API 응답을 그대로 표시합니다
+  </div>
+
+  <div id="summarySection"><div class="state-box"><div class="spinner"></div>예산 정보를 불러오는 중...</div></div>
+
+  <div class="section-head"><div class="section-title">카테고리별 예산</div></div>
+  <div id="budgetList" class="budget-list"></div>
+
+  <div class="section-head"><div class="section-title">이번 달 정기결제 예정</div><div id="recurCount" class="section-count"></div></div>
+  <div id="recurList" class="recur-list"></div>
+
+  <div class="navbar">
+    <a class="nav-item" data-nav="/home.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19C20 19.55 19.55 20 19 20H5C4.45 20 4 19.55 4 19V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      홈
+    </a>
+    <a class="nav-item" data-nav="/shield.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      쉴드
+    </a>
+    <a class="nav-item" data-nav="/budget.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </a>
+    <a class="nav-item" data-nav="/risk.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 003.54 21H20.46A2 2 0 0022.18 18L13.71 3.86A2 2 0 0010.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      이상거래
+    </a>
+    <a class="nav-item" data-nav="/expense.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  const CAT_ICON = {"식비":"🍔","교통":"🚕","쇼핑":"🛍️","업무용":"💻","의료/건강":"🏥","기타":"🎮"};
+  const PALETTE = ["var(--mint)", "var(--teal)", "var(--warning)", "var(--coral)", "var(--slate)", "#4C6EF5"];
+
+  function barColor(rate) {
+    if (rate >= 1) return "var(--danger)";
+    if (rate >= 0.8) return "var(--warning)";
+    return "var(--mint)";
+  }
+  function thresholdPills(list) {
+    if (!list || !list.length) return "";
+    return `<div class="threshold-pills">${list
+      .map((t) => `<span class="pill ${t >= 100 ? "pill-danger" : "pill-warn"}">${t}% 초과</span>`)
+      .join("")}</div>`;
+  }
+
+  async function loadBudgets() {
+    const uid = qs("user_id");
+    let usage;
+    try {
+      usage = await apiGet(`/api/v1/budgets/usage?user_id=${encodeURIComponent(uid)}`);
+    } catch (e) {
+      document.getElementById("summarySection").innerHTML = errorHtml(e.message);
+      document.getElementById("budgetList").innerHTML = "";
+      return;
+    }
+
+    const totalSpent = usage.reduce((s, u) => s + u.spent_amount, 0);
+    // 이번 달 지출이 전부 0원이면(막 예산만 잡아둔 상태) 모든 구간이 0%~0%가 되어
+    // conic-gradient가 마지막 색 하나로 도넛 전체를 채워버립니다 — 그 대신 중립 회색
+    // 원으로 보여줍니다.
+    let cumulative = 0;
+    const gradientStops =
+      totalSpent > 0
+        ? usage
+            .map((u, i) => {
+              const pct = (u.spent_amount / totalSpent) * 100;
+              const start = cumulative;
+              cumulative += pct;
+              return `${PALETTE[i % PALETTE.length]} ${start}% ${cumulative}%`;
+            })
+            .join(", ")
+        : "var(--line) 0% 100%";
+
+    document.getElementById("summarySection").innerHTML = `
+      <div class="summary-card">
+        <div class="summary-title">이번 달 지출</div>
+        <div class="summary-sub">${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월 기준 · 실제 거래 데이터</div>
+        <div class="donut-row">
+          <div class="donut-wrap">
+            <div class="donut" style="background:conic-gradient(${gradientStops})"></div>
+            <div class="donut-hole">
+              <div class="label">총 지출</div>
+              <div class="amount num">${fmtWon(totalSpent)}</div>
+            </div>
+          </div>
+          <div class="legend">
+            ${usage
+              .map(
+                (u, i) => `<div class="legend-row"><span class="dot" style="background:${PALETTE[i % PALETTE.length]}"></span><span class="legend-name">${escapeHtml(u.category)}</span><span class="legend-pct num">${totalSpent > 0 ? Math.round((u.spent_amount / totalSpent) * 100) : 0}%</span></div>`
+              )
+              .join("")}
+          </div>
+        </div>
+      </div>`;
+
+    document.getElementById("budgetList").innerHTML = usage
+      .map(
+        (u) => `
+      <div class="budget-card">
+        <div class="budget-card-top">
+          <div class="budget-cat">
+            <div class="cat-icon">${CAT_ICON[u.category] || "💳"}</div>
+            <div class="cat-name">${escapeHtml(u.category)}</div>
+          </div>
+          <div class="cat-amounts"><b class="num">${Math.round(u.spent_amount).toLocaleString("ko-KR")}</b> / <span class="num">${Math.round(u.limit_amount).toLocaleString("ko-KR")}원</span></div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${Math.min(u.usage_rate * 100, 100)}%; background:${barColor(u.usage_rate)}"></div></div>
+        <div class="budget-card-bottom">
+          ${thresholdPills(u.crossed_thresholds)}
+          <div class="rate-tag" style="color:${barColor(u.usage_rate)}">${fmtPct(u.usage_rate)}</div>
+        </div>
+      </div>`
+      )
+      .join("");
+
+    // 정기결제: 예산이 잡힌 카테고리마다 forecast를 불러서 recurring_payments를 모읍니다.
+    // 카테고리 수만큼 요청이 나가는데, 순서대로 기다리면 카테고리가 많을수록 느려지므로
+    // 한꺼번에 병렬로 보냅니다.
+    const forecastResults = await Promise.allSettled(
+      usage.map((u) =>
+        apiGet(`/api/v1/budgets/forecast?user_id=${encodeURIComponent(uid)}&category=${encodeURIComponent(u.category)}`)
+      )
+    );
+    const recurring = forecastResults
+      .filter((r) => r.status === "fulfilled")
+      .flatMap((r) => r.value.recurring_payments);
+    recurring.sort((a, b) => a.expected_date.localeCompare(b.expected_date));
+    document.getElementById("recurCount").textContent = `${recurring.length}건`;
+    document.getElementById("recurList").innerHTML = recurring.length
+      ? recurring
+          .map(
+            (r) => `
+        <div class="recur-row">
+          <div class="recur-icon">${escapeHtml(r.merchant_name[0])}</div>
+          <div class="recur-mid">
+            <div class="recur-name">${escapeHtml(r.merchant_name)}</div>
+            <div class="recur-date">${escapeHtml(r.expected_date)} 예정</div>
+          </div>
+          <div class="recur-amount num">${fmtWon(r.expected_amount)}</div>
+        </div>`
+          )
+          .join("")
+      : `<div class="state-box" style="margin:8px 0;">감지된 정기결제가 없어요.</div>`;
+  }
+
+  renderPersonaBar();
+  loadBudgets();
+</script>
+</body>
+</html>

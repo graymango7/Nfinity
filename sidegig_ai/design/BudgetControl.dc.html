@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<script src="./support.js"></script>
+<title>예산통제</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --mint:#00D2A0; --mint-deep:#00A67E; --mint-pale:#E3F8F1;
+    --ink:#14231F; --ink-soft:#6B7A74; --ink-faint:#9AA8A2;
+    --bg:#F6FAF8; --card:#FFFFFF; --line:#E8F0EC;
+    --danger:#FF5F5F; --danger-pale:#FFEBEA;
+    --warning:#FFB238; --warning-pale:#FFF6E6;
+    --teal:#00B4D8; --coral:#FF6F59; --slate:#8891A3;
+    --radius:20px; --radius-sm:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    width:390px; min-height:844px; background:var(--bg); color:var(--ink);
+    font-family:"Noto Sans KR","Manrope",-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:"Manrope","Noto Sans KR",sans-serif; font-variant-numeric:tabular-nums;}
+  .screen{display:flex; flex-direction:column; min-height:844px;}
+
+  /* header */
+  .header{padding:28px 22px 8px; display:flex; align-items:center; justify-content:space-between;}
+  .greeting{font-size:13px; color:var(--ink-soft); font-weight:500;}
+  .greeting b{color:var(--ink); font-weight:700;}
+  .month-pill{
+    display:flex; align-items:center; gap:6px; background:var(--card); border:1px solid var(--line);
+    padding:8px 14px; border-radius:999px; font-size:13px; font-weight:700; color:var(--ink);
+    box-shadow:0 1px 2px rgba(20,35,31,.04);
+  }
+  .month-pill svg{width:10px; height:10px; opacity:.5;}
+
+  /* donut summary card */
+  .summary-card{
+    margin:14px 20px 0; background:var(--card); border-radius:var(--radius);
+    padding:26px 22px 22px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);
+  }
+  .summary-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:18px;}
+  .summary-title{font-size:14px; font-weight:700; color:var(--ink);}
+  .summary-sub{font-size:12px; color:var(--ink-faint); margin-top:2px;}
+  .donut-row{display:flex; align-items:center; gap:22px;}
+  .donut-wrap{position:relative; width:148px; height:148px; flex:none;}
+  .donut{
+    width:148px; height:148px; border-radius:50%;
+    background:conic-gradient(
+      var(--mint) 0% 34%,
+      var(--teal) 34% 58%,
+      var(--warning) 58% 72%,
+      var(--coral) 72% 90%,
+      var(--slate) 90% 100%
+    );
+  }
+  .donut-hole{
+    position:absolute; inset:22px; background:var(--card); border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+  }
+  .donut-hole .label{font-size:10px; color:var(--ink-faint); font-weight:700; letter-spacing:.04em;}
+  .donut-hole .amount{font-size:19px; font-weight:800; margin-top:2px; letter-spacing:-.02em;}
+  .donut-hole .amount span{font-size:12px; font-weight:700; color:var(--ink-soft); margin-left:2px;}
+
+  .legend{display:flex; flex-direction:column; gap:10px; flex:1;}
+  .legend-row{display:flex; align-items:center; gap:9px; font-size:12.5px;}
+  .dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  .legend-name{color:var(--ink); font-weight:500; flex:1;}
+  .legend-pct{color:var(--ink-faint); font-weight:700; font-size:12px;}
+
+  /* section label */
+  .section-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    margin:26px 22px 12px;
+  }
+  .section-title{font-size:15px; font-weight:800; letter-spacing:-.01em;}
+  .section-link{font-size:12px; color:var(--mint-deep); font-weight:700;}
+
+  /* budget category cards */
+  .budget-list{padding:0 20px; display:flex; flex-direction:column; gap:10px;}
+  .budget-card{
+    background:var(--card); border-radius:var(--radius-sm); padding:16px 18px;
+    box-shadow:0 4px 14px -10px rgba(20,35,31,.18);
+  }
+  .budget-card-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .budget-cat{display:flex; align-items:center; gap:9px;}
+  .cat-icon{
+    width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-size:14px; flex:none;
+  }
+  .cat-name{font-size:13.5px; font-weight:700;}
+  .cat-amounts{font-size:12px; color:var(--ink-faint); text-align:right;}
+  .cat-amounts b{color:var(--ink); font-weight:700;}
+  .bar-track{height:7px; border-radius:99px; background:var(--line); overflow:hidden; margin-bottom:9px;}
+  .bar-fill{height:100%; border-radius:99px;}
+  .budget-card-bottom{display:flex; align-items:center; justify-content:space-between;}
+  .threshold-pills{display:flex; gap:6px;}
+  .pill{
+    font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:99px;
+  }
+  .pill-warn{background:var(--warning-pale); color:#B0710A;}
+  .pill-danger{background:var(--danger-pale); color:var(--danger);}
+  .rate-tag{font-size:11.5px; font-weight:800;}
+
+  /* recurring payments */
+  .recur-list{padding:0 20px 28px; display:flex; flex-direction:column; gap:8px;}
+  .recur-row{
+    display:flex; align-items:center; gap:12px; background:var(--card);
+    border-radius:var(--radius-sm); padding:13px 16px; box-shadow:0 4px 14px -10px rgba(20,35,31,.14);
+  }
+  .recur-icon{
+    width:34px; height:34px; border-radius:10px; background:var(--mint-pale); color:var(--mint-deep);
+    display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:800; flex:none;
+  }
+  .recur-mid{flex:1; min-width:0;}
+  .recur-name{font-size:13px; font-weight:700;}
+  .recur-date{font-size:11px; color:var(--ink-faint); margin-top:1px;}
+  .recur-amount{font-size:13.5px; font-weight:800;}
+
+  /* bottom nav */
+  .navbar{
+    margin-top:auto; position:sticky; bottom:0; background:var(--card); border-top:1px solid var(--line);
+    display:flex; padding:10px 10px 18px;
+  }
+  .nav-item{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; font-weight:700;}
+  .nav-item svg{width:22px; height:22px;}
+  .nav-item.active{color:var(--mint-deep);}
+  .nav-item:not(.active){color:var(--ink-faint);}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <div class="header">
+    <div class="greeting">안녕하세요, <b>은겸</b>님 👋</div>
+    <div class="month-pill">
+      8월
+      <svg viewBox="0 0 10 6" fill="none"><path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <div class="summary-card">
+    <div class="summary-top">
+      <div>
+        <div class="summary-title">이번 달 지출</div>
+        <div class="summary-sub">8월 1일 – 8월 30일 기준</div>
+      </div>
+    </div>
+    <div class="donut-row">
+      <div class="donut-wrap">
+        <div class="donut"></div>
+        <div class="donut-hole">
+          <div class="label">총 지출</div>
+          <div class="amount num">540,500<span>원</span></div>
+        </div>
+      </div>
+      <div class="legend">
+        <div class="legend-row"><span class="dot" style="background:var(--mint)"></span><span class="legend-name">식비</span><span class="legend-pct num">34%</span></div>
+        <div class="legend-row"><span class="dot" style="background:var(--teal)"></span><span class="legend-name">교통</span><span class="legend-pct num">24%</span></div>
+        <div class="legend-row"><span class="dot" style="background:var(--warning)"></span><span class="legend-name">쇼핑</span><span class="legend-pct num">14%</span></div>
+        <div class="legend-row"><span class="dot" style="background:var(--coral)"></span><span class="legend-name">업무용</span><span class="legend-pct num">18%</span></div>
+        <div class="legend-row"><span class="dot" style="background:var(--slate)"></span><span class="legend-name">기타</span><span class="legend-pct num">10%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="section-title">카테고리별 예산</div>
+    <div class="section-link">전체보기</div>
+  </div>
+
+  <div class="budget-list">
+    <div class="budget-card">
+      <div class="budget-card-top">
+        <div class="budget-cat">
+          <div class="cat-icon" style="background:var(--mint-pale)">🍔</div>
+          <div class="cat-name">식비</div>
+        </div>
+        <div class="cat-amounts"><b class="num">182,400</b> / <span class="num">200,000원</span></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:91%; background:var(--warning)"></div></div>
+      <div class="budget-card-bottom">
+        <div class="threshold-pills"><span class="pill pill-warn">50% 초과</span><span class="pill pill-warn">80% 초과</span></div>
+        <div class="rate-tag" style="color:var(--warning)">91%</div>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-card-top">
+        <div class="budget-cat">
+          <div class="cat-icon" style="background:#E5F7FB">🚕</div>
+          <div class="cat-name">교통</div>
+        </div>
+        <div class="cat-amounts"><b class="num">76,300</b> / <span class="num">150,000원</span></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:51%; background:var(--mint)"></div></div>
+      <div class="budget-card-bottom">
+        <div class="threshold-pills"><span class="pill pill-warn">50% 초과</span></div>
+        <div class="rate-tag" style="color:var(--mint-deep)">51%</div>
+      </div>
+    </div>
+
+    <div class="budget-card">
+      <div class="budget-card-top">
+        <div class="budget-cat">
+          <div class="cat-icon" style="background:var(--danger-pale)">🛍️</div>
+          <div class="cat-name">쇼핑</div>
+        </div>
+        <div class="cat-amounts"><b class="num">128,900</b> / <span class="num">120,000원</span></div>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--danger)"></div></div>
+      <div class="budget-card-bottom">
+        <div class="threshold-pills"><span class="pill pill-danger">100% 초과</span></div>
+        <div class="rate-tag" style="color:var(--danger)">107%</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head">
+    <div class="section-title">이번 달 정기결제 예정</div>
+  </div>
+  <div class="recur-list">
+    <div class="recur-row">
+      <div class="recur-icon">N</div>
+      <div class="recur-mid">
+        <div class="recur-name">넷플릭스</div>
+        <div class="recur-date">9월 3일 예정 · 3개월 연속 감지</div>
+      </div>
+      <div class="recur-amount num">17,000원</div>
+    </div>
+    <div class="recur-row">
+      <div class="recur-icon" style="background:#EAF1FF; color:#3B6EF5;">A</div>
+      <div class="recur-mid">
+        <div class="recur-name">AWS</div>
+        <div class="recur-date">9월 5일 예정 · 4개월 연속 감지</div>
+      </div>
+      <div class="recur-amount num">32,800원</div>
+    </div>
+    <div class="recur-row">
+      <div class="recur-icon" style="background:#FFF1EA; color:#E06B2E;">P</div>
+      <div class="recur-mid">
+        <div class="recur-name">패스트파이브</div>
+        <div class="recur-date">9월 1일 예정 · 5개월 연속 감지</div>
+      </div>
+      <div class="recur-amount num">220,000원</div>
+    </div>
+  </div>
+
+  <div class="navbar">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      리스크
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

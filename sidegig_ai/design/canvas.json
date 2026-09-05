@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 390, "h": 844, "title": "예산통제 (홈)" },
+    { "file": "RiskDefense.dc.html", "x": 550, "y": 0, "w": 390, "h": 844, "title": "리스크방어" },
+    { "file": "ExpenseLedger.dc.html", "x": 1100, "y": 0, "w": 390, "h": 844, "title": "절세장부" }
+  ],
+  "annotations": [
+    { "id": "brief", "x": 0, "y": -110, "w": 460, "text": "SideGig AI · 민트-그린 헬스핏 방향 · 캐릭터/마스코트 없음 · 정적 시안(백엔드 연동 전 컨펌용)" }
+  ],
+  "launch": { "view": "canvas" }
+}

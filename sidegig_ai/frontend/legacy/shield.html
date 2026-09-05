@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Risk Shield — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .shield-hero{
+    margin:16px 20px 0; border-radius:var(--radius); padding:24px 22px; color:#fff;
+    box-shadow:0 12px 26px -14px rgba(20,35,31,.35);
+  }
+  .shield-hero.lvl-안전{background:linear-gradient(155deg, var(--mint-deep), var(--mint));}
+  .shield-hero.lvl-주의{background:linear-gradient(155deg, #C97A0A, var(--warning));}
+  .shield-hero.lvl-위험{background:linear-gradient(155deg, #C43D3D, var(--danger));}
+  .shield-badge{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:800; padding:5px 11px; border-radius:99px; background:rgba(255,255,255,.22);}
+  .shield-cash-label{font-size:11.5px; font-weight:700; opacity:.85; margin-top:16px;}
+  .shield-cash{font-size:30px; font-weight:800; letter-spacing:-.02em; margin-top:4px;}
+  .shield-warn{font-size:12.5px; font-weight:700; margin-top:10px; line-height:1.5; background:rgba(255,255,255,.16); border-radius:12px; padding:10px 12px;}
+  .shield-split{display:flex; gap:10px; margin-top:16px;}
+  .shield-split-item{flex:1; background:rgba(255,255,255,.14); border-radius:12px; padding:11px 12px;}
+  .shield-split-label{font-size:10px; font-weight:700; opacity:.85;}
+  .shield-split-val{font-size:14px; font-weight:800; margin-top:4px;}
+
+  .card{margin:14px 20px 0; background:var(--card); border-radius:var(--radius); padding:20px 22px; box-shadow:0 8px 24px -12px rgba(20,35,31,.14);}
+  .card-title{font-size:13.5px; font-weight:800;}
+  .card-sub{font-size:11px; color:var(--ink-faint); font-weight:600; margin-top:2px; line-height:1.5;}
+
+  .safety-row{display:flex; align-items:center; gap:10px; margin-top:14px;}
+  .safety-input{flex:1; border:1.5px solid var(--line); border-radius:12px; padding:11px 13px; font-size:14px; font-weight:700; font-family:inherit; color:var(--ink); background:var(--bg);}
+  .safety-input:focus{outline:none; border-color:var(--mint);}
+  .safety-save{flex:none; background:var(--mint-deep); color:#fff; font-size:12px; font-weight:800; padding:11px 16px; border-radius:12px; border:none; cursor:pointer;}
+  .safety-hint{font-size:10.5px; color:var(--ink-faint); margin-top:8px; font-weight:600;}
+  .safety-saved{font-size:11px; color:var(--mint-deep); font-weight:800; margin-top:8px; display:none;}
+
+  .scenario-tabs{display:flex; gap:6px; margin-top:14px;}
+  .scenario-tab{flex:1; text-align:center; font-size:11px; font-weight:800; padding:8px 6px; border-radius:10px; background:var(--bg); color:var(--ink-soft); cursor:pointer; border:1.5px solid transparent;}
+  .scenario-tab.active{background:var(--mint-pale); color:var(--mint-deep); border-color:var(--mint);}
+  .scenario-tab .dot{display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:5px;}
+  .scenario-chart{margin-top:14px;}
+  .scenario-legend{display:flex; justify-content:space-between; font-size:10px; color:var(--ink-faint); font-weight:700; margin-top:6px;}
+  .scenario-final{font-size:11.5px; font-weight:700; color:var(--ink-soft); margin-top:10px;}
+
+  .evidence-row{display:flex; justify-content:space-between; padding:8px 0; font-size:12px;}
+  .evidence-row + .evidence-row{border-top:1px solid var(--line);}
+  .evidence-key{color:var(--ink-faint); font-weight:600;}
+  .evidence-val{font-weight:800;}
+
+  .benchmark-row{display:flex; justify-content:space-between; align-items:baseline; padding:9px 0;}
+  .benchmark-row + .benchmark-row{border-top:1px solid var(--line);}
+  .benchmark-label{font-size:12px; font-weight:700;}
+  .benchmark-src{font-size:9.5px; color:var(--ink-faint); font-weight:600; margin-top:2px;}
+  .benchmark-val{font-size:13px; font-weight:800; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div><div class="persona-name"></div><div class="persona-job"></div></div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    가상 데이터 데모 · 실제 API 응답을 그대로 표시합니다
+  </div>
+
+  <div id="heroSection"><div class="state-box"><div class="spinner"></div>Risk Shield 계산 중...</div></div>
+
+  <div class="card">
+    <div class="card-title">최소 안전잔액</div>
+    <div class="card-sub">이 금액 아래로 예상되면 "위험/주의"로 미리 알려드려요. 생활비·비상금 기준으로 직접 정해보세요.</div>
+    <div class="safety-row">
+      <input type="number" step="10000" class="safety-input" id="safetyInput" placeholder="예: 500000" />
+      <button class="safety-save" id="safetySave">저장</button>
+    </div>
+    <div class="safety-hint" id="safetyHint"></div>
+    <div class="safety-saved" id="safetySaved">저장했어요. Risk Shield에 바로 반영돼요.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">시나리오 비교</div>
+    <div class="card-sub">앞으로 45일, 상황이 조금 달라지면 잔액이 어떻게 움직일지 미리 봐요.</div>
+    <div class="scenario-tabs" id="scenarioTabs"></div>
+    <div class="scenario-chart" id="scenarioChart"></div>
+    <div class="scenario-legend">
+      <span id="scenarioStart"></span>
+      <span id="scenarioEnd"></span>
+    </div>
+    <div class="scenario-final" id="scenarioFinal"></div>
+  </div>
+
+  <div class="card" id="benchmarkCard" hidden>
+    <div class="card-title">공개 통계로 보는 기준선</div>
+    <div class="card-sub">내 결과와 비교해볼 수 있는 참고용 공개 통계예요(개인 결과를 확정하는 근거는 아니에요).</div>
+    <div id="benchmarkList"></div>
+  </div>
+
+  <div class="card" id="evidenceCard">
+    <div class="card-title">계산 근거</div>
+    <div id="evidenceList"></div>
+  </div>
+
+  <div id="disclaimerSection"></div>
+
+  <div class="navbar">
+    <a class="nav-item" data-nav="/home.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19C20 19.55 19.55 20 19 20H5C4.45 20 4 19.55 4 19V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      홈
+    </a>
+    <a class="nav-item" data-nav="/shield.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      쉴드
+    </a>
+    <a class="nav-item" data-nav="/budget.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </a>
+    <a class="nav-item" data-nav="/risk.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 003.54 21H20.46A2 2 0 0022.18 18L13.71 3.86A2 2 0 0010.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      이상거래
+    </a>
+    <a class="nav-item" data-nav="/expense.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  const SCENARIO_COLORS = { "기본": "#00A67E", "입금지연": "#FFB238", "수입감소": "#FF5F5F" };
+  let SCENARIOS = null;
+  let ACTIVE_SCENARIO = "기본";
+
+  // 참고용 공개 통계(하드코딩) — 실시간 API 연동이 아니라, 공표된 통계자료를 참고용
+  // 기준선으로 옮겨 적은 값입니다. 출처와 기준연도를 항상 같이 표기합니다.
+  const PUBLIC_BENCHMARKS = [
+    { label: "플랫폼노동자 월평균 소득 변동폭", value: "월 소득 상위 25%가 하위 25%의 약 2.4배", src: "출처: 통계청 KOSIS 「플랫폼종사자 근로실태」, 참고용" },
+    { label: "인적용역 사업소득자 평균 소득세 실효세율", value: "약 3~8% (구간별 상이)", src: "출처: 국세청 통계연보 요약, 참고용·확정 세액 아님" },
+    { label: "지역가입자 평균 건강보험료(소득 기준)", value: "소득의 약 6~8%", src: "출처: 국민건강보험공단 보험료 부과기준 요약, 참고용" },
+  ];
+
+  function riskDotColor(level) {
+    if (level === "위험") return "var(--danger)";
+    if (level === "주의") return "var(--warning)";
+    return "var(--mint)";
+  }
+
+  function renderHero(d) {
+    const warnHtml = d.minimum_balance_date
+      ? `<div class="shield-warn">⚠️ ${d.minimum_balance_date} 무렵 최소 안전잔액(${fmtWon(d.min_safety_balance)}) 아래로 내려갈 것으로 예상돼요.</div>`
+      : `<div class="shield-warn">✅ 앞으로 45일 동안 최소 안전잔액 아래로 내려가지 않을 것으로 예상돼요.</div>`;
+
+    document.getElementById("heroSection").innerHTML = `
+      <div class="shield-hero lvl-${d.risk_level}">
+        <span class="shield-badge">🛡️ Risk Shield · ${d.risk_level}</span>
+        <div class="shield-cash-label">지금 실제로 쓸 수 있는 돈 (세금·건보료 준비금 제외)</div>
+        <div class="shield-cash num">${fmtWon(d.available_cash)}</div>
+        ${warnHtml}
+        <div class="shield-split">
+          <div class="shield-split-item"><div class="shield-split-label">가상 잔액</div><div class="shield-split-val num">${fmtWon(d.current_balance)}</div></div>
+          <div class="shield-split-item"><div class="shield-split-label">세금 준비금</div><div class="shield-split-val num">${fmtWon(d.tax_reserve)}</div></div>
+          <div class="shield-split-item"><div class="shield-split-label">건보료 준비금</div><div class="shield-split-val num">${fmtWon(d.insurance_reserve)}</div></div>
+        </div>
+      </div>`;
+
+    document.getElementById("evidenceList").innerHTML = `
+      <div class="evidence-row"><span class="evidence-key">계산 기준 시각</span><span class="evidence-val">${escapeHtml(d.calculated_at.replace("T", " ").slice(0, 16))}</span></div>
+      <div class="evidence-row"><span class="evidence-key">수입 변동계수</span><span class="evidence-val">${d.income_variability}</span></div>
+      <div class="evidence-row"><span class="evidence-key">다음 정산까지 권장 준비액</span><span class="evidence-val num">${fmtWon(d.recommended_reserve)}</span></div>
+      <div class="evidence-row"><span class="evidence-key">위험 판단 근거</span><span class="evidence-val" style="text-align:right; max-width:180px;">${(d.risk_reasons || []).map(escapeHtml).join(", ")}</span></div>`;
+
+    document.getElementById("disclaimerSection").innerHTML = disclaimerHtml(d.disclaimer);
+  }
+
+  function renderBenchmarks() {
+    document.getElementById("benchmarkList").innerHTML = PUBLIC_BENCHMARKS.map(
+      (b) => `
+      <div class="benchmark-row">
+        <div>
+          <div class="benchmark-label">${escapeHtml(b.label)}</div>
+          <div class="benchmark-src">${escapeHtml(b.src)}</div>
+        </div>
+        <div class="benchmark-val">${escapeHtml(b.value)}</div>
+      </div>`
+    ).join("");
+    document.getElementById("benchmarkCard").hidden = false;
+  }
+
+  function drawScenarioChart() {
+    const series = SCENARIOS.scenarios[ACTIVE_SCENARIO];
+    const w = 340, h = 130, pad = 6;
+    const values = series.map((p) => p.balance);
+    const min = Math.min(...values, 0);
+    const max = Math.max(...values, 0);
+    const range = max - min || 1;
+    const toX = (i) => pad + (i / (series.length - 1)) * (w - pad * 2);
+    const toY = (v) => h - pad - ((v - min) / range) * (h - pad * 2);
+    const zeroY = toY(0);
+
+    const points = series.map((p, i) => `${toX(i)},${toY(p.balance)}`).join(" ");
+    const color = SCENARIO_COLORS[ACTIVE_SCENARIO];
+
+    document.getElementById("scenarioChart").innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none">
+        <line x1="0" y1="${zeroY}" x2="${w}" y2="${zeroY}" stroke="var(--line)" stroke-width="1.5" stroke-dasharray="4 3" />
+        <polyline points="${points}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" />
+      </svg>`;
+
+    document.getElementById("scenarioStart").textContent = series[0].date;
+    document.getElementById("scenarioEnd").textContent = series[series.length - 1].date;
+    document.getElementById("scenarioFinal").textContent =
+      `${ACTIVE_SCENARIO} 시나리오: 45일 뒤 예상 잔액 ${fmtWon(series[series.length - 1].balance)}`;
+  }
+
+  function renderScenarioTabs() {
+    document.getElementById("scenarioTabs").innerHTML = Object.keys(SCENARIOS.scenarios)
+      .map(
+        (name) => `
+      <div class="scenario-tab ${name === ACTIVE_SCENARIO ? "active" : ""}" data-scenario="${name}">
+        <span class="dot" style="background:${SCENARIO_COLORS[name]}"></span>${name}
+      </div>`
+      )
+      .join("");
+    document.querySelectorAll(".scenario-tab").forEach((el) => {
+      el.addEventListener("click", () => {
+        ACTIVE_SCENARIO = el.dataset.scenario;
+        renderScenarioTabs();
+        drawScenarioChart();
+      });
+    });
+  }
+
+  async function loadShield() {
+    const uid = qs("user_id");
+    let data;
+    try {
+      data = await apiGet(`/api/v1/shield/${encodeURIComponent(uid)}`);
+    } catch (e) {
+      document.getElementById("heroSection").innerHTML = errorHtml(e.message);
+      return;
+    }
+    renderHero(data);
+    renderBenchmarks();
+  }
+
+  async function loadScenarios() {
+    const uid = qs("user_id");
+    try {
+      SCENARIOS = await apiGet(`/api/v1/shield/${encodeURIComponent(uid)}/scenarios`);
+    } catch (e) {
+      document.getElementById("scenarioChart").innerHTML = errorHtml(e.message);
+      return;
+    }
+    renderScenarioTabs();
+    drawScenarioChart();
+  }
+
+  async function loadSafetySetting() {
+    const uid = qs("user_id");
+    try {
+      const s = await apiGet(`/api/v1/shield/${encodeURIComponent(uid)}/settings`);
+      document.getElementById("safetyInput").value = Math.round(s.min_safety_balance);
+      document.getElementById("safetyHint").textContent = s.is_default
+        ? "아직 직접 설정 안 해서 기본값(30만원)을 쓰고 있어요."
+        : "내가 직접 설정한 값이에요.";
+    } catch (e) {
+      document.getElementById("safetyHint").textContent = "";
+    }
+  }
+
+  document.getElementById("safetySave").addEventListener("click", async () => {
+    const uid = qs("user_id");
+    const val = Number(document.getElementById("safetyInput").value);
+    if (!val || val < 0) return;
+    try {
+      await apiPut(`/api/v1/shield/${encodeURIComponent(uid)}/settings`, { min_safety_balance: val });
+      document.getElementById("safetyHint").textContent = "내가 직접 설정한 값이에요.";
+      const saved = document.getElementById("safetySaved");
+      saved.style.display = "block";
+      setTimeout(() => (saved.style.display = "none"), 2400);
+      loadShield();
+    } catch (e) {
+      alert(e.message);
+    }
+  });
+
+  renderPersonaBar();
+  loadShield();
+  loadScenarios();
+  loadSafetySetting();
+</script>
+</body>
+</html>

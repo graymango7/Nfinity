@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>리스크방어 — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .score-card{
+    margin:16px 20px 0; background:linear-gradient(165deg,#0F241F 0%, #16332C 100%);
+    border-radius:var(--radius); padding:26px 22px 24px; color:#fff; position:relative; overflow:hidden;
+  }
+  .score-card::after{content:''; position:absolute; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%; background:radial-gradient(circle, rgba(0,210,160,.28), transparent 70%);}
+  .score-top{display:flex; align-items:center; justify-content:space-between; position:relative;}
+  .score-label{font-size:12.5px; color:rgba(255,255,255,.6); font-weight:600;}
+  .severity-chip{font-size:11px; font-weight:800; padding:5px 11px; border-radius:99px; letter-spacing:.02em;}
+  .gauge-row{display:flex; align-items:center; gap:22px; margin-top:18px; position:relative;}
+  .gauge-wrap{position:relative; width:126px; height:126px; flex:none;}
+  .gauge{width:126px; height:126px; border-radius:50%;}
+  .gauge-hole{position:absolute; inset:14px; background:#132921; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;}
+  .gauge-hole .score{font-size:32px; font-weight:800;}
+  .gauge-hole .max{font-size:11px; color:rgba(255,255,255,.5); font-weight:600; margin-top:-2px;}
+  .score-desc .action{font-size:14.5px; font-weight:800; margin-bottom:6px;}
+  .score-desc .desc{font-size:12px; color:rgba(255,255,255,.65); line-height:1.5;}
+
+  .timeline{padding:0 20px 28px; display:flex; flex-direction:column; gap:0;}
+  .tl-row{display:flex; gap:12px; padding:12px 0; border-bottom:1px solid var(--line);}
+  .tl-row:last-child{border-bottom:none;}
+  .tl-dot-col{display:flex; flex-direction:column; align-items:center; flex:none; padding-top:5px;}
+  .tl-dot{width:9px; height:9px; border-radius:50%;}
+  .tl-date{font-size:10px; color:var(--ink-faint); font-weight:700; width:56px; flex:none; padding-top:4px;}
+  .tl-mid{flex:1; min-width:0;}
+  .tl-merchant{font-size:13px; font-weight:700;}
+  .tl-tag{font-size:11px; color:var(--ink-soft); margin-top:2px;}
+  .tl-amount{font-size:13px; font-weight:800; text-align:right; flex:none;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div><div class="persona-name"></div><div class="persona-job"></div></div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    가상 데이터 데모 · 룰 엔진 + AI 이상탐지 실제 응답
+  </div>
+
+  <div id="scoreSection"><div class="state-box"><div class="spinner"></div>리스크 점수를 불러오는 중...</div></div>
+  <div id="disclaimerSection"></div>
+
+  <div class="section-head"><div class="section-title">최근 감지 내역</div><div id="eventCount" class="section-count"></div></div>
+  <div id="timeline" class="timeline"></div>
+
+  <div class="navbar">
+    <a class="nav-item" data-nav="/home.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19C20 19.55 19.55 20 19 20H5C4.45 20 4 19.55 4 19V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      홈
+    </a>
+    <a class="nav-item" data-nav="/shield.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      쉴드
+    </a>
+    <a class="nav-item" data-nav="/budget.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </a>
+    <a class="nav-item" data-nav="/risk.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 003.54 21H20.46A2 2 0 0022.18 18L13.71 3.86A2 2 0 0010.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      이상거래
+    </a>
+    <a class="nav-item" data-nav="/expense.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  const SEV_COLOR = {LOW:"var(--mint)", MEDIUM:"var(--teal)", HIGH:"var(--warning)", CRITICAL:"var(--danger)"};
+  const SEV_LABEL = {LOW:"낮음", MEDIUM:"보통", HIGH:"높음", CRITICAL:"긴급"};
+  const ACTION_LABEL = {
+    ALLOW: {title:"이상 없어요", desc:"최근 거래 패턴이 평소와 비슷해요."},
+    FLAG_FOR_REVIEW: {title:"한 번 확인해보세요", desc:"평소와 조금 다른 패턴이 감지됐어요."},
+    REQUIRE_CONFIRMATION: {title:"본인 확인이 필요해요", desc:"평소와 다른 패턴의 결제가 감지됐어요. 본인 결제가 맞는지 확인해주세요."},
+    BLOCK: {title:"결제가 차단됐어요", desc:"위험도가 높아 즉시 확인이 필요한 거래예요."},
+  };
+
+  function severityChipStyle(sev) {
+    const bg = {LOW:"rgba(0,210,160,.18)", MEDIUM:"rgba(0,180,216,.2)", HIGH:"rgba(255,178,56,.18)", CRITICAL:"rgba(255,95,95,.22)"}[sev] || "rgba(255,255,255,.12)";
+    const fg = {LOW:"#5FE3C2", MEDIUM:"#7FD8EE", HIGH:"#FFC773", CRITICAL:"#FF9B9B"}[sev] || "#fff";
+    return `background:${bg}; color:${fg};`;
+  }
+
+  async function loadScore() {
+    const uid = qs("user_id");
+    let score;
+    try {
+      score = await apiGet(`/api/v1/risk/score/${encodeURIComponent(uid)}`);
+    } catch (e) {
+      document.getElementById("scoreSection").innerHTML = errorHtml(e.message);
+      return;
+    }
+    const sev = score.severity || "LOW";
+    const action = ACTION_LABEL[score.action] || ACTION_LABEL.ALLOW;
+    const gaugePct = Math.max(0, Math.min(100, score.score || 0));
+    document.getElementById("scoreSection").innerHTML = `
+      <div class="score-card">
+        <div class="score-top">
+          <div class="score-label">현재 리스크 점수</div>
+          <div class="severity-chip" style="${severityChipStyle(sev)}">${escapeHtml(sev)} · ${escapeHtml(SEV_LABEL[sev] || sev)}</div>
+        </div>
+        <div class="gauge-row">
+          <div class="gauge-wrap">
+            <div class="gauge" style="background:conic-gradient(${SEV_COLOR[sev] || "var(--mint)"} 0% ${gaugePct}%, rgba(255,255,255,.14) ${gaugePct}% 100%)"></div>
+            <div class="gauge-hole"><div class="score num">${score.score ?? 0}</div><div class="max">/ 100</div></div>
+          </div>
+          <div class="score-desc">
+            <div class="action">${action.title}</div>
+            <div class="desc">${action.desc}</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  async function loadTimeline() {
+    const uid = qs("user_id");
+    let events;
+    try {
+      events = await apiGet(`/api/v1/risk/events?user_id=${encodeURIComponent(uid)}&limit=12`);
+    } catch (e) {
+      document.getElementById("timeline").innerHTML = errorHtml(e.message);
+      return;
+    }
+    document.getElementById("eventCount").textContent = `${events.length}건`;
+    document.getElementById("timeline").innerHTML = events.length
+      ? events
+          .map((ev) => {
+            const d = new Date(ev.transaction_timestamp || ev.created_at);
+            const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+            return `
+        <div class="tl-row">
+          <div class="tl-date num">${dateStr}</div>
+          <div class="tl-dot-col"><div class="tl-dot" style="background:${SEV_COLOR[ev.severity] || "var(--slate)"}"></div></div>
+          <div class="tl-mid">
+            <div class="tl-merchant">${escapeHtml(ev.merchant_name || "알 수 없는 가맹점")}</div>
+            <div class="tl-tag">${escapeHtml(ev.rule_id)} · ${escapeHtml(ev.description || "")}</div>
+          </div>
+          <div class="tl-amount num">${ev.transaction_amount != null ? fmtWon(ev.transaction_amount) : ""}</div>
+        </div>`;
+          })
+          .join("")
+      : `<div class="state-box">감지된 리스크 이벤트가 없어요. 평소와 같은 패턴이에요.</div>`;
+  }
+
+  renderPersonaBar();
+  document.getElementById("disclaimerSection").innerHTML = disclaimerHtml(
+    "룰엔진과 AI 모델이 계산한 참고용 이상거래 위험도예요. 실제 결제 승인·차단을 이 데모가 대신 수행하지 않아요."
+  );
+  loadScore();
+  loadTimeline();
+</script>
+</body>
+</html>

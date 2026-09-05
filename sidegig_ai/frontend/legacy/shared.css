@@ -1,0 +1,90 @@
+/* SideGig AI 데모 웹앱 — 공통 디자인 토큰 (민트-그린 헬스핏)
+   design/*.dc.html 시안에서 확정된 컬러/타입 시스템을 그대로 가져온 것입니다. */
+
+:root{
+  --mint:#00D2A0; --mint-deep:#00A67E; --mint-pale:#E3F8F1;
+  --ink:#14231F; --ink-soft:#6B7A74; --ink-faint:#9AA8A2;
+  --bg:#F6FAF8; --card:#FFFFFF; --line:#E8F0EC;
+  --danger:#FF5F5F; --danger-pale:#FFEBEA;
+  --warning:#FFB238; --warning-pale:#FFF6E6;
+  --teal:#00B4D8; --teal-pale:#E5F7FB; --coral:#FF6F59; --slate:#8891A3;
+  --radius:20px; --radius-sm:14px;
+  --app-w:430px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans KR","Manrope",-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-family:"Manrope","Noto Sans KR",sans-serif; font-variant-numeric:tabular-nums;}
+a{color:inherit; text-decoration:none;}
+
+.app-shell{max-width:var(--app-w); margin:0 auto; min-height:100vh; display:flex; flex-direction:column; background:var(--bg);}
+
+/* 데모 데이터 안내 배지 — 데이콘 운영진 공식 답변("가상 데이터인 경우 안내 권장")에 따른 표시 */
+.demo-badge{
+  display:flex; align-items:center; gap:7px; margin:12px 20px 0; padding:9px 13px;
+  background:var(--mint-pale); color:var(--mint-deep); border-radius:12px;
+  font-size:11.5px; font-weight:700; line-height:1.4;
+}
+.demo-badge svg{width:14px; height:14px; flex:none;}
+
+/* 상단: 페르소나 정보 + 전환 링크 */
+.persona-bar{
+  display:flex; align-items:center; justify-content:space-between; padding:14px 20px 0;
+}
+.persona-chip{display:flex; align-items:center; gap:9px;}
+.persona-avatar{
+  width:34px; height:34px; border-radius:50%; background:var(--card); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center; font-size:16px;
+}
+.persona-name{font-size:13px; font-weight:700;}
+.persona-job{font-size:10.5px; color:var(--ink-faint); font-weight:600;}
+.switch-link{
+  font-size:11.5px; font-weight:700; color:var(--ink-soft); display:flex; align-items:center; gap:4px;
+  padding:6px 11px; border-radius:99px; background:var(--card); border:1px solid var(--line);
+}
+
+.section-head{display:flex; align-items:baseline; justify-content:space-between; margin:26px 22px 12px;}
+.section-title{font-size:15px; font-weight:800; letter-spacing:-.01em;}
+.section-count{font-size:12px; color:var(--ink-faint); font-weight:700;}
+
+.state-box{margin:40px 22px; text-align:center; color:var(--ink-faint); font-size:13px; font-weight:600;}
+.state-box.error{color:var(--danger);}
+.spinner{
+  width:26px; height:26px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--mint);
+  margin:0 auto 10px; animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.navbar{
+  margin-top:auto; position:sticky; bottom:0; background:var(--card); border-top:1px solid var(--line);
+  display:flex; padding:10px 10px 18px;
+}
+.nav-item{flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; font-size:10.5px; font-weight:700;}
+.nav-item svg{width:22px; height:22px;}
+.nav-item.active{color:var(--mint-deep);}
+.nav-item:not(.active){color:var(--ink-faint);}
+
+.pill{font-size:10.5px; font-weight:800; padding:3px 8px; border-radius:99px;}
+.pill-warn{background:var(--warning-pale); color:#B0710A;}
+.pill-danger{background:var(--danger-pale); color:var(--danger);}
+.pill-ok{background:var(--mint-pale); color:var(--mint-deep);}
+
+/* 9/2 세 번째 업데이트: 네비게이션에 "쉴드" 탭이 추가되면서 5개가 됐습니다 —
+   좁은 화면에서도 안 잘리도록 아이템당 패딩/폰트를 살짝 줄입니다. */
+.navbar{padding:9px 4px 16px;}
+.nav-item{font-size:9.8px; gap:3px;}
+.nav-item svg{width:20px; height:20px;}
+
+/* AI 결과 면책 문구 — 기획서 8번 "AI 결과는 참고용 추정치이며 세무신고·보험료고지·
+   대출승인이 아님을 고지" 요구사항. Gig Score/Risk Shield/절세장부/이상거래 페이지에서
+   공통으로 씁니다. */
+.disclaimer-box{
+  display:flex; gap:8px; margin:14px 20px 0; padding:11px 13px;
+  background:var(--bg); border:1px solid var(--line); border-radius:12px;
+  font-size:10.5px; color:var(--ink-faint); font-weight:600; line-height:1.55;
+}
+.disclaimer-box svg{width:13px; height:13px; flex:none; margin-top:1px; color:var(--ink-faint);}

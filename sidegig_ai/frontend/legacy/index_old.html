@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SideGig AI — 데모</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .hero{padding:44px 26px 18px;}
+  .hero-eyebrow{font-size:12px; font-weight:800; color:var(--mint-deep); letter-spacing:.04em;}
+  .hero-title{font-size:25px; font-weight:800; letter-spacing:-.02em; margin-top:8px;}
+  .hero-sub{font-size:13px; color:var(--ink-soft); margin-top:8px; line-height:1.6;}
+
+  .persona-list{padding:8px 20px 40px; display:flex; flex-direction:column; gap:10px;}
+  .persona-card{
+    display:flex; align-items:center; gap:14px; background:var(--card); border-radius:var(--radius-sm);
+    padding:16px 16px; box-shadow:0 6px 18px -12px rgba(20,35,31,.2); border:1px solid transparent;
+    cursor:pointer; transition:border-color .15s, transform .15s;
+  }
+  .persona-card:hover{border-color:var(--mint); transform:translateY(-1px);}
+  .persona-emoji{
+    width:48px; height:48px; border-radius:14px; background:var(--mint-pale); flex:none;
+    display:flex; align-items:center; justify-content:center; font-size:22px;
+  }
+  .persona-mid{flex:1; min-width:0;}
+  .persona-card-name{font-size:14.5px; font-weight:800;}
+  .persona-card-job{font-size:11.5px; color:var(--mint-deep); font-weight:700; margin-top:1px;}
+  .persona-card-tagline{font-size:12px; color:var(--ink-soft); margin-top:5px; line-height:1.4;}
+  .persona-arrow{color:var(--ink-faint); flex:none;}
+  .persona-arrow svg{width:16px; height:16px;}
+
+  .footer-note{padding:0 26px 32px; font-size:11px; color:var(--ink-faint); text-align:center; line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="hero">
+    <div class="hero-eyebrow">SIDEGIG AI · 2026 금융 AI Challenge</div>
+    <div class="hero-title">N잡러를 위한<br/>리스크방어 &amp; 예산통제</div>
+    <div class="hero-sub">아래 5명 중 한 명을 골라, 그 사람의 폰을 잠깐 빌려보듯<br/>실제 데이터로 동작하는 화면을 구경해보세요.</div>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    실제 인물이 아닌, 시연을 위해 준비한 가상 데이터입니다.
+  </div>
+
+  <div id="personaList" class="persona-list">
+    <div class="state-box"><div class="spinner"></div>페르소나 불러오는 중...</div>
+  </div>
+
+  <div class="footer-note">서버 재시작 직후엔 첫 요청이 조금 느릴 수 있어요.</div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  (async () => {
+    const el = document.getElementById("personaList");
+    try {
+      const data = await apiGet("/api/v1/demo/personas");
+      el.innerHTML = data.personas
+        .map((p) => {
+          const href = `/home.html?${new URLSearchParams({
+            user_id: p.user_id, name: p.name, emoji: p.avatar_emoji, job: p.job,
+          }).toString()}`;
+          return `
+            <a class="persona-card" href="${href}">
+              <div class="persona-emoji">${escapeHtml(p.avatar_emoji)}</div>
+              <div class="persona-mid">
+                <div class="persona-card-name">${escapeHtml(p.name)}</div>
+                <div class="persona-card-job">${escapeHtml(p.job)}</div>
+                <div class="persona-card-tagline">${escapeHtml(p.tagline)}</div>
+              </div>
+              <div class="persona-arrow">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </a>`;
+        })
+        .join("");
+    } catch (e) {
+      el.innerHTML = errorHtml(e.message);
+    }
+  })();
+</script>
+</body>
+</html>

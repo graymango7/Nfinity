@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>절세장부 — SideGig AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/shared.css">
+<style>
+  .refund-card{
+    margin:16px 20px 0; background:var(--mint); border-radius:var(--radius);
+    padding:22px 22px; color:#fff; display:flex; align-items:center; justify-content:space-between;
+    box-shadow:0 10px 24px -12px rgba(0,166,126,.5);
+  }
+  .refund-label{font-size:12.5px; font-weight:700; opacity:.9;}
+  .refund-amount{font-size:26px; font-weight:800; margin-top:4px; letter-spacing:-.02em;}
+  .refund-badge{font-size:11px; font-weight:800; background:rgba(255,255,255,.22); padding:6px 12px; border-radius:99px;}
+
+  .stack{position:relative; margin:0 24px 4px;}
+  .swipe-card{
+    border-radius:24px; background:var(--card); box-shadow:0 18px 40px -18px rgba(20,35,31,.28);
+    padding:24px 22px; display:flex; flex-direction:column; min-height:300px;
+  }
+  .card-top{display:flex; align-items:flex-start; justify-content:space-between;}
+  .merchant-icon{width:46px; height:46px; border-radius:14px; background:var(--mint-pale); color:var(--mint-deep); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:800;}
+  .prob-ring{width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center;}
+  .prob-ring-hole{width:36px; height:36px; border-radius:50%; background:var(--card); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--mint-deep);}
+  .card-mid{margin-top:22px;}
+  .merchant-name{font-size:20px; font-weight:800; letter-spacing:-.01em;}
+  .merchant-amount{font-size:15px; color:var(--ink-soft); font-weight:700; margin-top:4px;}
+  .ai-tag-row{margin-top:18px;}
+  .ai-tag{font-size:12px; font-weight:800; background:var(--mint-pale); color:var(--mint-deep); padding:6px 12px; border-radius:99px;}
+  .card-spacer{flex:1;}
+  .queue-pos{font-size:11px; color:var(--ink-faint); font-weight:700; text-align:center;}
+
+  .action-row{display:flex; justify-content:center; align-items:center; gap:16px; margin:20px 0 8px;}
+  .action-btn{
+    display:flex; align-items:center; gap:8px; padding:12px 20px; border-radius:99px;
+    box-shadow:0 8px 20px -8px rgba(20,35,31,.25); background:var(--card); font-size:13px; font-weight:800;
+    border:none; cursor:pointer; color:var(--ink);
+  }
+  .action-btn svg{width:16px; height:16px;}
+  .action-btn.prev{color:var(--ink-faint); box-shadow:none; background:transparent;}
+  .action-btn.next{background:var(--mint); color:#fff;}
+
+  .queue-preview{padding:14px 20px 24px; display:flex; flex-direction:column; gap:8px;}
+  .qp-row{display:flex; align-items:center; gap:12px; background:var(--card); border-radius:var(--radius-sm); padding:12px 15px; box-shadow:0 4px 14px -10px rgba(20,35,31,.12); opacity:.85;}
+  .qp-icon{width:30px; height:30px; border-radius:9px; background:var(--bg); display:flex; align-items:center; justify-content:center; font-size:13px; flex:none;}
+  .qp-name{font-size:12.5px; font-weight:700; flex:1;}
+  .qp-amount{font-size:12.5px; font-weight:700; color:var(--ink-soft);}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <div class="persona-bar">
+    <div class="persona-chip">
+      <div class="persona-avatar"></div>
+      <div><div class="persona-name"></div><div class="persona-job"></div></div>
+    </div>
+    <a class="switch-link" href="/index.html">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none"><path d="M17 2L21 6L17 10M7 22L3 18L7 14M21 6H8C5.79 6 4 7.79 4 10M3 18H16C18.21 18 20 16.21 20 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      다른 사람 보기
+    </a>
+  </div>
+
+  <div class="demo-badge">
+    <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 8V13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.2" r="1.1" fill="currentColor"/></svg>
+    가상 데이터 데모 · AI 분류 결과를 실제 응답 그대로 표시합니다
+  </div>
+
+  <div id="refundSection"><div class="state-box"><div class="spinner"></div>절세장부를 불러오는 중...</div></div>
+  <div id="disclaimerSection"></div>
+
+  <div class="section-head"><div class="section-title">분류 결과</div><div id="queueCount" class="section-count"></div></div>
+  <div id="stack" class="stack"></div>
+  <div id="actionRow" class="action-row"></div>
+
+  <div class="section-head"><div class="section-title">다음 대기</div></div>
+  <div id="queuePreview" class="queue-preview"></div>
+
+  <div class="navbar">
+    <a class="nav-item" data-nav="/home.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M4 11L12 4L20 11V19C20 19.55 19.55 20 19 20H5C4.45 20 4 19.55 4 19V11Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      홈
+    </a>
+    <a class="nav-item" data-nav="/shield.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3L4 6.5V11C4 15.5 7.4 19.7 12 21C16.6 19.7 20 15.5 20 11V6.5L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      쉴드
+    </a>
+    <a class="nav-item" data-nav="/budget.html">
+      <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      예산
+    </a>
+    <a class="nav-item" data-nav="/risk.html">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9V13M12 17H12.01M10.29 3.86L1.82 18A2 2 0 003.54 21H20.46A2 2 0 0022.18 18L13.71 3.86A2 2 0 0010.29 3.86Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+      이상거래
+    </a>
+    <a class="nav-item" data-nav="/expense.html">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="2"/><path d="M3 10.5H21" stroke="currentColor" stroke-width="2"/></svg>
+      장부
+    </a>
+  </div>
+</div>
+
+<script src="/api.js"></script>
+<script>
+  let QUEUE = [];
+  let IDX = 0;
+
+  function renderCard() {
+    const stack = document.getElementById("stack");
+    const item = QUEUE[IDX];
+    if (!item) {
+      stack.innerHTML = `<div class="state-box">분류할 거래가 더 없어요. 수고하셨어요!</div>`;
+      document.getElementById("actionRow").innerHTML = "";
+      return;
+    }
+    const probPct = item.prob;
+    stack.innerHTML = `
+      <div class="swipe-card">
+        <div class="card-top">
+          <div class="merchant-icon">${escapeHtml(item.merchant[0])}</div>
+          <div class="prob-ring" style="background:conic-gradient(var(--mint) 0% ${probPct}%, var(--line) ${probPct}% 100%)">
+            <div class="prob-ring-hole num">${probPct}%</div>
+          </div>
+        </div>
+        <div class="card-mid">
+          <div class="merchant-name">${escapeHtml(item.merchant)}</div>
+          <div class="merchant-amount num">${fmtWon(item.amount)}</div>
+        </div>
+        <div class="ai-tag-row"><span class="ai-tag">${escapeHtml(item.ai_tag)}</span></div>
+        <div class="card-spacer"></div>
+        <div class="queue-pos num">${IDX + 1} / ${QUEUE.length}</div>
+      </div>`;
+
+    document.getElementById("actionRow").innerHTML = `
+      <button class="action-btn prev" ${IDX === 0 ? "disabled" : ""} onclick="IDX=Math.max(0,IDX-1); renderCard(); renderPreview();">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M15 6L9 12L15 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        이전
+      </button>
+      <button class="action-btn next" onclick="IDX=Math.min(QUEUE.length-1,IDX+1); renderCard(); renderPreview();">
+        다음 거래 보기
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 6L15 12L9 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>`;
+  }
+
+  function renderPreview() {
+    const upcoming = QUEUE.slice(IDX + 1, IDX + 4);
+    document.getElementById("queuePreview").innerHTML = upcoming.length
+      ? upcoming
+          .map(
+            (q) => `
+        <div class="qp-row">
+          <div class="qp-icon">${escapeHtml(q.merchant[0])}</div>
+          <div class="qp-name">${escapeHtml(q.merchant)} · ${escapeHtml(q.ai_tag)}</div>
+          <div class="qp-amount num">${fmtWon(q.amount)}</div>
+        </div>`
+          )
+          .join("")
+      : `<div class="state-box" style="margin:8px 0;">더 이상 대기 중인 거래가 없어요.</div>`;
+  }
+
+  async function loadExpense() {
+    const uid = qs("user_id");
+    let data;
+    try {
+      data = await apiGet(`/api/v1/expense/classify?user_id=${encodeURIComponent(uid)}&limit=15`);
+    } catch (e) {
+      document.getElementById("refundSection").innerHTML = errorHtml(e.message);
+      document.getElementById("stack").innerHTML = "";
+      return;
+    }
+    QUEUE = data.transactions_queue;
+    document.getElementById("refundSection").innerHTML = `
+      <div class="refund-card">
+        <div>
+          <div class="refund-label">예상 환급액</div>
+          <div class="refund-amount num">${fmtWon(data.current_estimated_refund)}</div>
+        </div>
+        <div class="refund-badge">분류 대상 ${QUEUE.length}건</div>
+      </div>`;
+    document.getElementById("queueCount").textContent = `${QUEUE.length}건`;
+    renderCard();
+    renderPreview();
+  }
+
+  renderPersonaBar();
+  document.getElementById("disclaimerSection").innerHTML = disclaimerHtml(
+    "AI가 분류한 참고용 추정치예요. 실제 경비 인정 여부는 국세청 신고 시 최종 확인이 필요하고, 세무 신고를 대신하지 않아요."
+  );
+  loadExpense();
+</script>
+</body>
+</html>
