@@ -29,6 +29,9 @@ _UUID_RE = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 
+# 경로의 UUID가 user_id가 아닌 라우트들 (여기서는 income_sources.source_id).
+_NON_USER_ID_PATH_PREFIXES = ("/api/v1/income/sources/",)
+
 _FORBIDDEN = JSONResponse(
     status_code=403,
     content={
@@ -63,8 +66,15 @@ class DemoUserGuardMiddleware(BaseHTTPMiddleware):
             if qs_user and qs_user not in allowed:
                 return _FORBIDDEN
 
-            for found in _UUID_RE.findall(path):
-                if found not in allowed:
-                    return _FORBIDDEN
+            # 경로에 박힌 UUID가 전부 user_id인 건 아닙니다. /income/sources/{source_id}/connect
+            # 처럼 다른 자원의 id를 경로에 쓰는 라우트가 있어서, 그것까지 user_id로 보고 막으면
+            # 정상 요청이 403으로 죽습니다(실제로 "연결하기" 버튼이 조용히 실패했습니다).
+            # 이런 라우트는 경로 UUID 검사를 건너뛰고 쿼리의 user_id만 봅니다 — 라우터 쿼리가
+            # 이미 `WHERE source_id = :sid AND user_id = :uid`로 소유자까지 함께 확인하므로,
+            # 남의 source_id를 넣어도 자기 데이터가 아니면 404가 납니다.
+            if not any(path.startswith(p) for p in _NON_USER_ID_PATH_PREFIXES):
+                for found in _UUID_RE.findall(path):
+                    if found not in allowed:
+                        return _FORBIDDEN
 
         return await call_next(request)
