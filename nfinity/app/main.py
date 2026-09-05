@@ -172,8 +172,12 @@ def health():
             expense_ai = "fallback (GEMINI_API_KEY 없음)"
         elif ec.MOCK_MODE:
             expense_ai = "fallback (모듈 로드 시점에 키가 없었음 — 재시작 필요)"
+        elif getattr(ec, "LAST_CALL_OK", None) is False:
+            expense_ai = "fallback (호출 실패: " + str(getattr(ec, "LAST_CALL_ERROR", ""))[:80] + ")"
+        elif getattr(ec, "LAST_CALL_OK", None) is True:
+            expense_ai = "gemini (" + getattr(ec, "GEMINI_MODEL", "?") + ")"
         else:
-            expense_ai = "gemini"
+            expense_ai = "gemini (" + getattr(ec, "GEMINI_MODEL", "?") + ", 아직 호출 전)"
     except Exception as exc:  # 진단이 헬스체크를 깨뜨리면 안 됩니다.
         expense_ai = "unknown (" + type(exc).__name__ + ")"
 

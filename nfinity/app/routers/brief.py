@@ -109,7 +109,7 @@ def _call_gemini_cached(facts_json: str) -> str:
 
     client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     resp = client.models.generate_content(
-        model="gemini-2.0-flash",
+        model=os.environ.get("GEMINI_MODEL", "gemini-3.6-flash"),
         contents="다음은 이미 계산이 끝난 이 사용자의 수치다:\n" + facts_json,
         config=types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,

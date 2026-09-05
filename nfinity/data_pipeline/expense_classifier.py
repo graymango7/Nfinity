@@ -57,7 +57,16 @@ except ImportError:
     types = None  # type: ignore
 
 # 키가 설정되어 있으면 실제 API, 없으면 Mock — 매번 코드를 고쳐가며 껐다 켤 필요 없게 자동화
+# 9/6: gemini-2.0-flash가 서비스 종료되어 호출이 404로 실패하고 있었습니다. 응답 형태가
+# 폴백과 같아서 밖에서는 알 수 없었고, /health도 "키가 있으니 gemini"라고만 보고했습니다.
+# 모델명을 환경변수로 빼서 다음에 또 바뀌어도 코드 수정 없이 넘길 수 있게 합니다.
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+
 MOCK_MODE = genai is None or not os.environ.get("GEMINI_API_KEY")
+
+# 마지막 실제 호출이 성공했는지 (None=아직 호출 안 함). /health가 이 값을 읽어서
+# "키는 있는데 호출은 실패 중"인 상태를 드러냅니다.
+LAST_CALL_OK = None
 
 # 마진 세율 가정 (환급액 계산용 — 실제로는 페르소나별 과세표준에 맞게 조정 필요)
 ASSUMED_MARGINAL_TAX_RATE = 0.15
@@ -138,7 +147,7 @@ def call_gemini(job: str, merchant: str, time_period: str, amount: int) -> dict:
         user_content = build_user_prompt(job, merchant, time_period, amount)
 
         response = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=GEMINI_MODEL,
             contents=user_content,
             config=types.GenerateContentConfig(
                 system_instruction=full_system_instruction,
@@ -148,9 +157,12 @@ def call_gemini(job: str, merchant: str, time_period: str, amount: int) -> dict:
         )
 
         result = json.loads(response.text)
+        globals()["LAST_CALL_OK"] = True
         return {"ai_tag": result["ai_tag"], "prob": int(result["prob"])}
 
     except Exception as e:
+        globals()["LAST_CALL_OK"] = False
+        globals()["LAST_CALL_ERROR"] = f"{type(e).__name__}: {e}"[:200]
         print(f"⚠️ Gemini API 호출 실패({e}) → 규칙 기반 폴백 사용")
         return rule_based_fallback(job, merchant)
 
