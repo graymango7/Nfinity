@@ -1,0 +1,42 @@
+# Render Blueprint — 완전 무료(free) 플랜만 사용합니다.
+# 사용법: Render 대시보드 → New + → Blueprint → 이 GitHub 저장소(graymango7/Nfinity) 선택
+# → Render가 이 파일을 자동으로 읽어서 web/DB/Redis 3개를 한 번에 만듭니다.
+# 이후로는 이 저장소의 main 브랜치에 git push할 때마다 자동으로 재배포됩니다(autoDeploy).
+
+services:
+  - name: sidegig-ai
+    type: web
+    runtime: docker
+    plan: free
+    dockerfilePath: ./sidegig_ai/Dockerfile
+    dockerContext: ./sidegig_ai
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sidegig-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: sidegig-redis
+          type: keyvalue
+          property: connectionString
+      # 대회 운영진이 공식적으로 데모(가상) 데이터 시연을 허용한 구조라, README의
+      # 설계 판단(9-10번)을 그대로 따라 기본값은 비워둡니다. 잠그고 싶으면 Render
+      # 대시보드에서 이 값과 frontend/index.html의 API_KEY 상수를 똑같이 채우세요.
+      - key: API_ACCESS_KEY
+        value: ""
+      # 없으면 앱이 자동으로 Mock 모드(규칙 기반 폴백)로 동작합니다 — 필수 아님.
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - name: sidegig-redis
+    type: keyvalue
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: sidegig-db
+    plan: free
