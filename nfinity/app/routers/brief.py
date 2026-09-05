@@ -125,7 +125,9 @@ def get_brief(user_id: str, debug: int = 0, db: Session = Depends(get_db)):
     facts, shield = _facts(db, user_id)
     facts_json = json.dumps(facts, ensure_ascii=False, sort_keys=True)
 
-    if not os.environ.get("GEMINI_API_KEY"):
+    from app.gemini_client import available
+
+    if not available():
         result = _fallback(facts)
     else:
         try:

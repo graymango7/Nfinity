@@ -138,25 +138,15 @@ def call_gemini(job: str, merchant: str, time_period: str, amount: int) -> dict:
         if not api_key:
             raise ValueError("환경변수에 GEMINI_API_KEY가 설정되어 있지 않습니다.")
 
-        client = genai.Client(api_key=api_key)
-
         full_system_instruction = SYSTEM_PROMPT + "\n\n[참고 예시]\n"
         for ex in FEW_SHOT_EXAMPLES:
             full_system_instruction += f"입력: {json.dumps(ex['input'], ensure_ascii=False)} / 출력: {json.dumps(ex['output'], ensure_ascii=False)}\n"
 
         user_content = build_user_prompt(job, merchant, time_period, amount)
 
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=user_content,
-            config=types.GenerateContentConfig(
-                system_instruction=full_system_instruction,
-                response_mime_type="application/json",
-                temperature=0,
-            ),
-        )
+        from app.gemini_client import generate_json
 
-        result = json.loads(response.text)
+        result = generate_json(full_system_instruction, user_content, temperature=0)
         globals()["LAST_CALL_OK"] = True
         return {"ai_tag": result["ai_tag"], "prob": int(result["prob"])}
 

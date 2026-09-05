@@ -162,22 +162,10 @@ def health():
     폴백으로 도는 상황(패키지 미설치, 키 오타 등)을 눈치채지 못하면 "AI 서비스"라고 해놓고
     규칙 엔진만 돌리는 셈이 됩니다.
     """
-    expense_ai = "unknown"
     try:
-        from data_pipeline import expense_classifier as ec
+        from app.gemini_client import status as gemini_status
 
-        if ec.genai is None:
-            expense_ai = "fallback (google-genai 패키지 없음)"
-        elif not os.environ.get("GEMINI_API_KEY"):
-            expense_ai = "fallback (GEMINI_API_KEY 없음)"
-        elif ec.MOCK_MODE:
-            expense_ai = "fallback (모듈 로드 시점에 키가 없었음 — 재시작 필요)"
-        elif getattr(ec, "LAST_CALL_OK", None) is False:
-            expense_ai = "fallback (호출 실패: " + str(getattr(ec, "LAST_CALL_ERROR", ""))[:80] + ")"
-        elif getattr(ec, "LAST_CALL_OK", None) is True:
-            expense_ai = "gemini (" + getattr(ec, "GEMINI_MODEL", "?") + ")"
-        else:
-            expense_ai = "gemini (" + getattr(ec, "GEMINI_MODEL", "?") + ", 아직 호출 전)"
+        expense_ai = gemini_status()
     except Exception as exc:  # 진단이 헬스체크를 깨뜨리면 안 됩니다.
         expense_ai = "unknown (" + type(exc).__name__ + ")"
 
