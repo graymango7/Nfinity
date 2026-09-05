@@ -89,6 +89,13 @@ def _seed_on_startup():
     # 9/5: Render 무료 플랜의 15분 스핀다운으로 심사 중 첫 접속이 50초 넘게 걸리는 걸
     # 막기 위해, 앱이 스스로 자기 /health를 주기적으로 호출합니다(app/keepalive.py).
     start_keepalive()
+    # 배포/재시작 시점에도 한 번 정리해서, 앞선 관람자가 만져놓은 상태로 시작하지 않게 합니다.
+    try:
+        from app.demo_reset import reset_demo_state
+
+        reset_demo_state()
+    except Exception:  # 복원 실패가 서버 기동을 막으면 안 됩니다.
+        pass
 
 
 # ============================================================

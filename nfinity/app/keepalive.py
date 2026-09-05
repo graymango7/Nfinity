@@ -42,13 +42,29 @@ def _public_health_url() -> str | None:
     return base + "/health"
 
 
+# 데모 상태 복원 주기(초). 한 사람이 둘러보는 동안에는 자기가 만든 변화가 남아 있고,
+# 그 사람이 떠난 뒤 다음 사람은 온전한 데모를 보도록 30분으로 잡았습니다.
+DEMO_RESET_INTERVAL_SECONDS = int(os.environ.get("DEMO_RESET_INTERVAL_SECONDS", "1800"))
+
+
 async def _loop(url: str):
+    elapsed = 0
     while True:
         await asyncio.sleep(KEEPALIVE_INTERVAL_SECONDS)
+        elapsed += KEEPALIVE_INTERVAL_SECONDS
         try:
             await asyncio.to_thread(_fetch, url)
         except Exception as exc:  # 실패해도 서비스에 영향이 없어야 하므로 로그만 남깁니다.
             logger.warning("[keepalive] 자가 핑 실패: %s", exc)
+
+        if elapsed >= DEMO_RESET_INTERVAL_SECONDS:
+            elapsed = 0
+            try:
+                from app.demo_reset import reset_demo_state
+
+                await asyncio.to_thread(reset_demo_state)
+            except Exception as exc:
+                logger.warning("[keepalive] 데모 상태 복원 실패: %s", exc)
 
 
 def _fetch(url: str):

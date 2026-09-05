@@ -599,7 +599,7 @@
     el("risk").innerHTML = '<div class="list">' + events.slice(0, 6).map(function (e) {
       return '<div class="list-row">' +
         '<span class="pill ' + riskClass(e.severity) + '" style="min-width:66px;justify-content:center">' + escapeHtml(e.severity) + "</span>" +
-        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(e.merchant_name || "가맹점 미상") +
+        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(e.merchant_name || "화면에서 직접 검사한 거래") +
           (e.transaction_amount ? ' <span class="num" style="color:var(--text-muted);font-weight:400">' + won(e.transaction_amount) + "</span>" : "") + "</span>" +
         '<span class="label truncate" style="display:block">' + escapeHtml(e.rule_id) + " · " + escapeHtml(e.description) + "</span></span>" +
         '<span class="label num">' + escapeHtml(e.transaction_timestamp ? mmdd(e.transaction_timestamp) : "") + "</span></div>";
