@@ -35,6 +35,8 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.demo_guard import DemoUserGuardMiddleware
+from app.keepalive import start as start_keepalive
 from app.rate_limit import RateLimitMiddleware
 from app.redis_client import ping as redis_ping
 from app.routers import budgets, demo, expense, gig_score, income, risk, shield, tax
@@ -62,6 +64,8 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT"],
     allow_headers=["Content-Type", "X-API-Key"],
 )
+# 9/5: 공개 데모라 시드된 페르소나 외의 user_id 조회를 서버에서 막습니다(app/demo_guard.py).
+app.add_middleware(DemoUserGuardMiddleware)
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
@@ -82,6 +86,9 @@ def _seed_on_startup():
     이미 데이터가 있으면 아무 것도 하지 않고 즉시 반환하므로 재시작마다 반복 실행돼도
     안전합니다."""
     run_startup_seed()
+    # 9/5: Render 무료 플랜의 15분 스핀다운으로 심사 중 첫 접속이 50초 넘게 걸리는 걸
+    # 막기 위해, 앱이 스스로 자기 /health를 주기적으로 호출합니다(app/keepalive.py).
+    start_keepalive()
 
 
 # ============================================================

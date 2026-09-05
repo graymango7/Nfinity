@@ -105,6 +105,13 @@ def assess_transaction(txn: Transaction, db: Session = Depends(get_db)):
     원천적으로 설계되지 않은 유형(R00x_위치급변/R00y_신규기기 같은)도 "AI001"이라는 가상의
     rule_id로 risk_events에 남습니다 — 룰 목록에 없다고 조용히 묻히지 않게 하려는 것입니다.
     """
+    # 9/5: 본문으로 들어오는 user_id는 미들웨어(app/demo_guard.py)가 검사하지 못하므로
+    # 여기서 직접 막습니다 — 임의의 user_id로 남의 이력에 평가 기록을 남길 수 없게.
+    from app.demo_guard import allowed_user_ids
+
+    if txn.user_id not in allowed_user_ids():
+        raise HTTPException(status_code=403, detail="이 시연 배포는 공개된 데모 계정만 평가할 수 있습니다.")
+
     profile = _load_profile(db, txn.user_id)
     history = _load_recent_history(db, txn.user_id, before=txn.timestamp)
 
