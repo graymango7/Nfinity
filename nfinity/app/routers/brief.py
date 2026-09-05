@@ -121,7 +121,7 @@ def _call_gemini_cached(facts_json: str) -> str:
 
 
 @router.get("/{user_id}")
-def get_brief(user_id: str, db: Session = Depends(get_db)):
+def get_brief(user_id: str, debug: int = 0, db: Session = Depends(get_db)):
     facts, shield = _facts(db, user_id)
     facts_json = json.dumps(facts, ensure_ascii=False, sort_keys=True)
 
@@ -137,9 +137,11 @@ def get_brief(user_id: str, db: Session = Depends(get_db)):
             }
             if not result["summary"]:
                 result = _fallback(facts)
-        except Exception:
+        except Exception as exc:
             logger.exception("[brief] Gemini 호출 실패 → 템플릿 문장으로 대체")
             result = _fallback(facts)
+            if debug:  # 배포 환경에서 실패 원인을 확인하기 위한 임시 진단
+                result["error"] = type(exc).__name__ + ": " + str(exc)[:200]
 
     result["disclaimer"] = "계산된 추정치를 바탕으로 작성된 안내이며, 확정 세액·보험료가 아닙니다."
     return result
