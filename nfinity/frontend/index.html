@@ -1,172 +1,124 @@
 <!--
-  Nfinity — 데스크톱 웹 대시보드 (9/5 전면 재작성)
+  Nfinity — 데스크톱 웹 (9/5 재작성, 9/5 2차: 2화면 구조로 분리)
 
-  이전 화면(frontend/legacy/)은 폰 목업 형태의 단일 컬럼 레이아웃이라 데스크톱 브라우저로
-  심사할 때 "제품"이 아니라 "데모 목업"처럼 보였습니다. 이 파일은 그걸 대체하는 데스크톱
-  기준 대시보드입니다.
+  화면 구성
+    1) 사례 선택 화면 — 3명의 시연용 인물 중 하나를 고릅니다. 각 카드에 현재 현금흐름
+       상태(안전/주의/위험)를 같이 띄워서, 고르기 전에 무엇을 보게 될지 알 수 있게 합니다.
+    2) 대시보드 — 카테고리 4개(현금흐름 / 수입 / 지출 관리 / 거래 보안)로 구획을 나눕니다.
+       이전 버전은 카드 7장을 한 화면에 평평하게 늘어놔서 무엇부터 봐야 할지 알기 어려웠습니다.
 
-  구성 원칙
-  - 현금흐름 45일 예측(Risk Shield)을 화면 최상단 주인공으로 둡니다. 이 서비스가 일반
-    은행 앱과 갈리는 지점이 "플랫폼별 정산 주기를 학습해 앞으로를 예측한다"는 것이라,
-    첫 화면에서 그게 바로 보여야 합니다.
-  - 외부 라이브러리를 쓰지 않습니다. 차트는 API 응답으로 직접 그리는 인라인 SVG입니다
-    (app/security_headers.py의 CSP와 충돌하지 않고, 네트워크 실패로 화면이 깨질 여지도 없음).
+  구현 원칙
+  - 외부 라이브러리 없음. 차트는 API 응답으로 직접 그리는 인라인 SVG입니다
+    (app/security_headers.py의 CSP와 충돌하지 않고, 네트워크 실패로 깨질 여지도 없음).
   - 카드마다 독립적으로 로드/실패합니다. 한 API가 죽어도 나머지 화면은 그대로 뜹니다.
   - 모든 동적 텍스트는 escapeHtml을 거칩니다(값이 LLM 출력이 될 수 있는 필드가 있어서).
 -->
 <title>Nfinity — N잡러 현금흐름 관리</title>
 <style>
   :root {
-    --bg: #f5f6f8;
-    --card: #ffffff;
-    --border: #e3e6ea;
-    --border-strong: #d1d6dc;
-    --text: #101828;
-    --text-muted: #667085;
-    --text-faint: #98a2b3;
-    --accent: #1b4dd8;
-    --accent-soft: #eaf0ff;
-    --safe: #067647;
-    --warn: #b54708;
-    --danger: #b42318;
-    --safe-soft: #ecfdf3;
-    --warn-soft: #fffaeb;
-    --danger-soft: #fef3f2;
-    --radius: 10px;
+    --bg: #f5f6f8; --card: #fff; --border: #e3e6ea; --border-strong: #d1d6dc;
+    --text: #101828; --text-muted: #667085; --text-faint: #98a2b3;
+    --accent: #1b4dd8; --accent-soft: #eaf0ff;
+    --safe: #067647; --warn: #b54708; --danger: #b42318;
+    --safe-soft: #ecfdf3; --warn-soft: #fffaeb; --danger-soft: #fef3f2;
   }
-
   * { box-sizing: border-box; }
-
   body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--text);
+    margin: 0; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5;
     font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI",
                  "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
     -webkit-font-smoothing: antialiased;
   }
-
   .num { font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
 
-  /* ---------- 상단 바 ---------- */
-  .topbar {
-    background: #fff;
-    border-bottom: 1px solid var(--border);
-    position: sticky; top: 0; z-index: 50;
-  }
-  .topbar-inner {
-    max-width: 1380px; margin: 0 auto; padding: 0 28px;
-    height: 60px; display: flex; align-items: center; gap: 16px;
-  }
+  /* ---------- 공통 바 ---------- */
+  .topbar { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+  .topbar-inner { max-width: 1320px; margin: 0 auto; padding: 0 28px; height: 60px;
+    display: flex; align-items: center; gap: 14px; }
   .brand { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; }
   .brand span { color: var(--accent); }
-  .demo-badge {
-    font-size: 12px; color: var(--warn); background: var(--warn-soft);
-    border: 1px solid #fedf89; padding: 4px 10px; border-radius: 999px;
-  }
-  .topbar-spacer { flex: 1; }
+  .demo-badge { font-size: 12px; color: var(--warn); background: var(--warn-soft);
+    border: 1px solid #fedf89; padding: 4px 10px; border-radius: 999px; }
+  .spacer { flex: 1; }
+  .ghost-btn { background: #fff; border: 1px solid var(--border-strong); border-radius: 8px;
+    padding: 7px 13px; cursor: pointer; font-family: inherit; font-size: 13px; color: var(--text); }
+  .ghost-btn:hover { background: #fafbfc; }
 
-  /* 페르소나 전환 */
-  .switcher { position: relative; }
-  .switcher-btn {
-    display: flex; align-items: center; gap: 10px;
-    background: #fff; border: 1px solid var(--border-strong);
-    border-radius: 8px; padding: 6px 12px; cursor: pointer;
-    font-family: inherit; font-size: 13px; color: var(--text);
-  }
-  .switcher-btn:hover { background: #fafbfc; }
-  .switcher-btn .caret { color: var(--text-faint); font-size: 10px; }
-  .switcher-menu {
-    position: absolute; right: 0; top: calc(100% + 6px); width: 330px;
-    background: #fff; border: 1px solid var(--border-strong); border-radius: 10px;
-    box-shadow: 0 12px 32px rgba(16,24,40,0.12); padding: 6px; z-index: 60;
-  }
-  .switcher-item {
-    display: flex; gap: 11px; align-items: flex-start; width: 100%;
-    padding: 10px; border: 0; background: none; border-radius: 7px;
-    cursor: pointer; text-align: left; font-family: inherit;
-  }
-  .switcher-item:hover { background: #f6f7f9; }
-  .switcher-item[aria-current="true"] { background: var(--accent-soft); }
-  .switcher-item .emoji { font-size: 20px; line-height: 1.2; }
-  .switcher-item .nm { font-weight: 600; font-size: 13px; }
-  .switcher-item .tg { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  /* ---------- 1) 선택 화면 ---------- */
+  .landing { max-width: 1060px; margin: 0 auto; padding: 64px 28px 80px; }
+  .landing h1 { font-size: 34px; letter-spacing: -0.03em; margin: 0 0 12px; line-height: 1.3; }
+  .landing h1 b { color: var(--accent); font-weight: 700; }
+  .landing .lede { font-size: 15px; color: var(--text-muted); max-width: 640px; margin: 0 0 10px; }
+  .landing .pick { font-size: 13px; color: var(--text-faint); margin: 34px 0 14px;
+    text-transform: none; letter-spacing: 0; }
+  .persona-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  @media (max-width: 900px) { .persona-grid { grid-template-columns: minmax(0, 1fr); } }
+  .persona-card { background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 20px; text-align: left; cursor: pointer; font-family: inherit;
+    transition: border-color .12s, box-shadow .12s, transform .12s; }
+  .persona-card:hover { border-color: var(--accent); box-shadow: 0 8px 24px rgba(27,77,216,0.10);
+    transform: translateY(-2px); }
+  .persona-card .emoji { font-size: 30px; display: block; margin-bottom: 12px; }
+  .persona-card .nm { font-size: 17px; font-weight: 650; letter-spacing: -0.01em; }
+  .persona-card .job { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; }
+  .persona-card .tg { font-size: 13px; color: var(--text-muted); margin-top: 12px; min-height: 58px; line-height: 1.55; }
+  .persona-card .go { font-size: 13px; color: var(--accent); font-weight: 600; margin-top: 6px; }
 
-  /* ---------- 레이아웃 ---------- */
-  .page { max-width: 1380px; margin: 0 auto; padding: 26px 28px 60px; }
-
-  .pagehead { display: flex; align-items: flex-end; gap: 18px; margin-bottom: 22px; flex-wrap: wrap; }
-  .pagehead h1 { margin: 0; font-size: 24px; letter-spacing: -0.02em; }
+  /* ---------- 2) 대시보드 ---------- */
+  .page { max-width: 1320px; margin: 0 auto; padding: 24px 28px 60px; }
+  .pagehead { margin-bottom: 8px; }
+  .pagehead h1 { margin: 0; font-size: 23px; letter-spacing: -0.02em; }
   .pagehead .sub { color: var(--text-muted); font-size: 13px; margin-top: 4px; }
 
-  .grid { display: grid; gap: 16px; }
-  .row-hero { grid-template-columns: minmax(0, 2.15fr) minmax(0, 1fr); }
-  .row-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid + .grid { margin-top: 16px; }
-  @media (max-width: 1080px) {
-    .row-hero, .row-3, .row-2 { grid-template-columns: minmax(0, 1fr); }
-  }
+  .section { margin-top: 34px; }
+  .section-head { display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px;
+    margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+  .section-head h2 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+  .section-head .desc { font-size: 12.5px; color: var(--text-faint); }
+  .section-head .right { margin-left: auto; }
 
-  /* ---------- 카드 ---------- */
-  .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 18px 20px; min-width: 0;
-  }
-  .card-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; }
-  .card-title { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
-  .card-sub { font-size: 12px; color: var(--text-faint); }
-  .card-head .right { margin-left: auto; }
+  .grid { display: grid; gap: 16px; }
+  .row-hero { grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr); }
+  .row-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1080px) { .row-hero, .row-2 { grid-template-columns: minmax(0, 1fr); } }
+
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 18px 20px; min-width: 0; }
+  .card-title { font-size: 13.5px; font-weight: 650; margin-bottom: 12px; }
 
   .metric { font-size: 27px; font-weight: 680; letter-spacing: -0.02em; }
   .metric-sm { font-size: 20px; font-weight: 650; letter-spacing: -0.01em; }
   .label { font-size: 12px; color: var(--text-muted); }
 
-  .pill {
-    display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
-    font-weight: 600; padding: 3px 9px; border-radius: 999px;
-  }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px;
+    font-weight: 600; padding: 3px 9px; border-radius: 999px; }
   .pill.safe { color: var(--safe); background: var(--safe-soft); }
   .pill.warn { color: var(--warn); background: var(--warn-soft); }
   .pill.danger { color: var(--danger); background: var(--danger-soft); }
   .pill.neutral { color: var(--text-muted); background: #f2f4f7; }
-
   .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 
-  /* 시나리오 탭 */
   .tabs { display: inline-flex; background: #f2f4f7; border-radius: 8px; padding: 3px; gap: 2px; }
-  .tab {
-    border: 0; background: none; font-family: inherit; font-size: 12.5px;
-    color: var(--text-muted); padding: 5px 12px; border-radius: 6px; cursor: pointer;
-  }
+  .tab { border: 0; background: none; font-family: inherit; font-size: 12.5px;
+    color: var(--text-muted); padding: 5px 12px; border-radius: 6px; cursor: pointer; }
   .tab[aria-selected="true"] { background: #fff; color: var(--text); font-weight: 600;
     box-shadow: 0 1px 2px rgba(16,24,40,0.08); }
 
-  .chart-wrap { margin: 4px -4px 0; }
   svg.chart { width: 100%; height: auto; display: block; }
-
   .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
   .legend i { display: inline-block; width: 12px; height: 2px; vertical-align: middle; margin-right: 5px; }
 
-  /* 리스트 */
   .list { display: flex; flex-direction: column; }
-  .list-row {
-    display: flex; align-items: center; gap: 10px; padding: 9px 0;
-    border-top: 1px solid #f0f2f5;
-  }
+  .list-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-top: 1px solid #f0f2f5; }
   .list-row:first-child { border-top: 0; }
   .list-row .grow { flex: 1; min-width: 0; }
   .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-  /* 진행 바 */
   .bar { height: 6px; border-radius: 999px; background: #eef0f3; overflow: hidden; }
   .bar > span { display: block; height: 100%; border-radius: 999px; background: var(--accent); }
   .bar.over > span { background: var(--danger); }
   .bar.near > span { background: var(--warn); }
-
-  /* 게이지 */
   .gauge-track { height: 8px; border-radius: 999px; background: #eef0f3; overflow: hidden; margin: 10px 0 6px; }
   .gauge-track > span { display: block; height: 100%; background: linear-gradient(90deg, #1b4dd8, #4a7bff); }
 
@@ -177,116 +129,113 @@
 
   .kv { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; }
   .kv + .kv { border-top: 1px solid #f0f2f5; }
-
-  .muted-box {
-    background: #f9fafb; border: 1px solid var(--border); border-radius: 8px;
-    padding: 11px 13px; font-size: 12px; color: var(--text-muted); line-height: 1.55;
-  }
-
+  .muted-box { background: #f9fafb; border: 1px solid var(--border); border-radius: 8px;
+    padding: 11px 13px; font-size: 12px; color: var(--text-muted); line-height: 1.55; }
   .skeleton { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
   .err { color: var(--danger); font-size: 12.5px; background: var(--danger-soft);
     border: 1px solid #fecdca; border-radius: 7px; padding: 9px 11px; }
-
-  footer.page-foot {
-    max-width: 1380px; margin: 0 auto; padding: 0 28px 40px;
-    font-size: 12px; color: var(--text-faint); line-height: 1.6;
-  }
+  footer.page-foot { max-width: 1320px; margin: 0 auto; padding: 0 28px 40px;
+    font-size: 12px; color: var(--text-faint); line-height: 1.6; }
 </style>
 
 <div class="topbar">
   <div class="topbar-inner">
     <div class="brand">N<span>finity</span></div>
     <div class="demo-badge">시연용 가상 데이터 · 실제 인물·계좌가 아닙니다</div>
-    <div class="topbar-spacer"></div>
-    <div class="switcher">
-      <button class="switcher-btn" id="switcherBtn" aria-haspopup="true" aria-expanded="false">
-        <span id="switcherLabel">불러오는 중…</span>
-        <span class="caret">▼</span>
-      </button>
-      <div class="switcher-menu" id="switcherMenu" hidden></div>
+    <div class="spacer"></div>
+    <button class="ghost-btn" id="backBtn" hidden>← 다른 사례 보기</button>
+  </div>
+</div>
+
+<!-- ===== 1) 사례 선택 ===== -->
+<div id="viewLanding">
+  <div class="landing">
+    <h1>여러 플랫폼에서 들어오는 수입,<br><b>다음 정산까지 버틸 수 있는지</b> 알려드립니다.</h1>
+    <p class="lede">
+      배달·프리랜서·콘텐츠 등 흩어진 플랫폼의 정산 주기를 학습해 앞으로 45일의 잔액을 예측하고,
+      수입 변동성에 맞춰 세금·건강보험료를 미리 떼어둡니다. 이상거래 탐지와 업무경비 분류도 함께 제공합니다.
+    </p>
+    <div class="pick">아래 세 사람 중 한 명을 골라 그 사람의 대시보드를 살펴보세요.</div>
+    <div class="persona-grid" id="personaGrid">
+      <div class="skeleton">불러오는 중…</div>
     </div>
   </div>
 </div>
 
-<div class="page">
-  <div class="pagehead">
-    <div>
+<!-- ===== 2) 대시보드 ===== -->
+<div id="viewDash" hidden>
+  <div class="page">
+    <div class="pagehead">
       <h1 id="userName">—</h1>
       <div class="sub" id="userTagline"></div>
     </div>
-  </div>
 
-  <!-- 히어로: 현금흐름 예측 + 세금/건보료 파킹 -->
-  <div class="grid row-hero">
-    <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="card-title">현금흐름 예측</div>
-          <div class="card-sub">연결된 플랫폼의 정산 주기와 정기 지출을 학습해 앞으로 45일을 시뮬레이션합니다</div>
+    <!-- 현금흐름 -->
+    <div class="section">
+      <div class="section-head">
+        <h2>현금흐름</h2>
+        <span class="desc">정산 주기와 정기 지출을 학습해 앞으로 45일을 시뮬레이션합니다</span>
+        <span class="right"><div class="tabs" id="scenarioTabs" role="tablist"></div></span>
+      </div>
+      <div class="grid row-hero">
+        <div class="card">
+          <div id="shieldSummary"></div>
+          <div id="chartWrap"><div class="skeleton">불러오는 중…</div></div>
+          <div class="legend" id="chartLegend"></div>
         </div>
-        <div class="right">
-          <div class="tabs" id="scenarioTabs" role="tablist"></div>
+        <div class="card">
+          <div class="card-title">세금 · 건보료 파킹</div>
+          <div id="parking"><div class="skeleton">불러오는 중…</div></div>
         </div>
       </div>
-      <div id="shieldSummary"></div>
-      <div class="chart-wrap" id="chartWrap"><div class="skeleton">불러오는 중…</div></div>
-      <div class="legend" id="chartLegend"></div>
     </div>
 
-    <div class="card">
-      <div class="card-head"><div class="card-title">세금 · 건보료 파킹</div></div>
-      <div id="parking"><div class="skeleton">불러오는 중…</div></div>
-    </div>
-  </div>
-
-  <!-- 수입 / Gig Score / 예산 -->
-  <div class="grid row-3">
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">플랫폼별 수입</div>
-        <div class="card-sub right" id="incomePeriod"></div>
+    <!-- 수입 -->
+    <div class="section">
+      <div class="section-head">
+        <h2>수입</h2>
+        <span class="desc">플랫폼별 정산 내역과 이를 신용 지표로 환산한 점수</span>
       </div>
-      <div id="income"><div class="skeleton">불러오는 중…</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">Gig Score</div>
-        <div class="card-sub">N잡러 신용 지표</div>
-      </div>
-      <div id="gig"><div class="skeleton">불러오는 중…</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">이번 달 예산</div>
-        <div class="card-sub right">카테고리별 사용률</div>
-      </div>
-      <div id="budget"><div class="skeleton">불러오는 중…</div></div>
-    </div>
-  </div>
-
-  <!-- 이상거래 / 경비 분류 -->
-  <div class="grid row-2">
-    <div class="card">
-      <div class="card-head">
-        <div>
-          <div class="card-title">이상거래 탐지</div>
-          <div class="card-sub">규칙 엔진 7종 + Isolation Forest 이상탐지 앙상블</div>
+      <div class="grid row-2">
+        <div class="card">
+          <div class="card-title">플랫폼별 수입 <span class="label" id="incomePeriod"></span></div>
+          <div id="income"><div class="skeleton">불러오는 중…</div></div>
         </div>
-        <div class="right" id="riskBadge"></div>
+        <div class="card">
+          <div class="card-title">Gig Score</div>
+          <div id="gig"><div class="skeleton">불러오는 중…</div></div>
+        </div>
       </div>
-      <div id="risk"><div class="skeleton">불러오는 중…</div></div>
     </div>
 
-    <div class="card">
-      <div class="card-head">
-        <div>
+    <!-- 지출 관리 -->
+    <div class="section">
+      <div class="section-head">
+        <h2>지출 관리</h2>
+        <span class="desc">카테고리별 예산 사용률과 업무경비 자동 분류</span>
+      </div>
+      <div class="grid row-2">
+        <div class="card">
+          <div class="card-title">이번 달 예산</div>
+          <div id="budget"><div class="skeleton">불러오는 중…</div></div>
+        </div>
+        <div class="card">
           <div class="card-title">업무경비 자동 분류</div>
-          <div class="card-sub">거래 내역을 업무/개인으로 분류해 경비 후보를 추립니다</div>
+          <div id="expense"><div class="skeleton">불러오는 중…</div></div>
         </div>
       </div>
-      <div id="expense"><div class="skeleton">불러오는 중…</div></div>
+    </div>
+
+    <!-- 거래 보안 -->
+    <div class="section">
+      <div class="section-head">
+        <h2>거래 보안</h2>
+        <span class="desc">규칙 엔진 7종 + Isolation Forest 이상탐지 앙상블</span>
+        <span class="right" id="riskBadge"></span>
+      </div>
+      <div class="card">
+        <div id="risk"><div class="skeleton">불러오는 중…</div></div>
+      </div>
     </div>
   </div>
 </div>
@@ -296,15 +245,9 @@
 <script>
 (function () {
   "use strict";
-
   var API = "/api/v1";
-  // 기본 진입 페르소나: 박지수(현금흐름 위기) — 이 화면의 주인공 기능인 45일 예측이
-  // 실제로 "N일 후 부족"을 띄우는 케이스라, 첫 화면에서 서비스 가치가 바로 드러납니다.
-  var DEFAULT_USER = "6d422b5f-1b23-4312-bbfc-4ef97e5fc845";
-
   var state = { personas: [], userId: null, scenarios: null, shield: null, scenarioKey: "기본" };
 
-  // ---------- 유틸 ----------
   function escapeHtml(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
@@ -319,122 +262,110 @@
   function mmdd(iso) { var p = String(iso).slice(5, 10).split("-"); return p[0] + "/" + p[1]; }
   function el(id) { return document.getElementById(id); }
   function fail(id, msg) { el(id).innerHTML = '<div class="err">' + escapeHtml(msg) + "</div>"; }
-
   function get(path) {
     return fetch(API + path, { headers: { Accept: "application/json" } }).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
   }
-
   function riskClass(level) {
     if (level === "위험" || level === "CRITICAL" || level === "HIGH") return "danger";
     if (level === "주의" || level === "MEDIUM") return "warn";
     return "safe";
   }
 
-  // ---------- 페르소나 전환 ----------
-  function renderSwitcher() {
-    var cur = state.personas.filter(function (p) { return p.user_id === state.userId; })[0];
-    el("switcherLabel").textContent = cur ? cur.avatar_emoji + "  " + cur.name : "페르소나";
-    el("switcherMenu").innerHTML = state.personas.map(function (p) {
-      return '<button class="switcher-item" data-uid="' + escapeHtml(p.user_id) + '" aria-current="' +
-        (p.user_id === state.userId) + '">' +
+  // ---------- 화면 전환 ----------
+  function showLanding() {
+    el("viewDash").hidden = true;
+    el("viewLanding").hidden = false;
+    el("backBtn").hidden = true;
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    window.scrollTo(0, 0);
+  }
+  function showDash() {
+    el("viewLanding").hidden = true;
+    el("viewDash").hidden = false;
+    el("backBtn").hidden = false;
+    window.scrollTo(0, 0);
+  }
+  el("backBtn").addEventListener("click", showLanding);
+
+  // ---------- 선택 화면 ----------
+  function renderPersonaGrid() {
+    el("personaGrid").innerHTML = state.personas.map(function (p) {
+      return '<button class="persona-card" data-uid="' + escapeHtml(p.user_id) + '">' +
         '<span class="emoji">' + escapeHtml(p.avatar_emoji) + "</span>" +
-        '<span><span class="nm">' + escapeHtml(p.name) + " · " + escapeHtml(p.job) + "</span>" +
-        '<span class="tg">' + escapeHtml(p.tagline) + "</span></span></button>";
+        '<div class="nm">' + escapeHtml(p.name) + "</div>" +
+        '<div class="job">' + escapeHtml(p.job) + "</div>" +
+        '<div class="tg">' + escapeHtml(p.tagline) + "</div>" +
+        '<div id="pstat-' + escapeHtml(p.user_id) + '"></div>' +
+        '<div class="go">대시보드 보기 →</div></button>';
     }).join("");
-    Array.prototype.forEach.call(el("switcherMenu").querySelectorAll(".switcher-item"), function (b) {
-      b.addEventListener("click", function () {
-        closeMenu();
-        selectUser(b.getAttribute("data-uid"));
-      });
+    Array.prototype.forEach.call(el("personaGrid").querySelectorAll(".persona-card"), function (b) {
+      b.addEventListener("click", function () { selectUser(b.getAttribute("data-uid")); });
     });
-    if (cur) {
-      el("userName").textContent = cur.name + " 님의 대시보드";
-      el("userTagline").textContent = cur.job + " · " + cur.tagline;
-    }
+
+    // 카드마다 현재 현금흐름 상태를 덧붙입니다(고르기 전에 무엇을 보게 될지 알 수 있게).
+    state.personas.forEach(function (p) {
+      get("/shield/" + p.user_id).then(function (sh) {
+        var box = el("pstat-" + p.user_id);
+        if (!box) return;
+        box.innerHTML = '<span class="pill ' + riskClass(sh.risk_level) + '" style="margin-bottom:4px">' +
+          '<span class="dot"></span>현금흐름 ' + escapeHtml(sh.risk_level) + "</span>" +
+          (sh.minimum_balance_date
+            ? '<div class="label" style="margin-top:6px">' + escapeHtml(mmdd(sh.minimum_balance_date)) +
+              " 잔고 부족 예상</div>"
+            : '<div class="label" style="margin-top:6px">45일 내 잔고 부족 예상 없음</div>');
+      }).catch(function () {});
+    });
   }
-  function closeMenu() {
-    el("switcherMenu").hidden = true;
-    el("switcherBtn").setAttribute("aria-expanded", "false");
-  }
-  el("switcherBtn").addEventListener("click", function (e) {
-    e.stopPropagation();
-    var m = el("switcherMenu");
-    m.hidden = !m.hidden;
-    el("switcherBtn").setAttribute("aria-expanded", String(!m.hidden));
-  });
-  document.addEventListener("click", closeMenu);
-  el("switcherMenu").addEventListener("click", function (e) { e.stopPropagation(); });
 
   // ---------- 차트 ----------
   function drawChart(points, minSafety, shortageDate) {
     if (!points || !points.length) return '<div class="skeleton">표시할 데이터가 없습니다.</div>';
-
     var W = 900, H = 300, PL = 62, PR = 18, PT = 16, PB = 30;
     var iw = W - PL - PR, ih = H - PT - PB;
-
     var vals = points.map(function (p) { return p.balance; }).concat([minSafety, 0]);
     var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
-    if (hi === lo) { hi = lo + 1; }
-    var pad = (hi - lo) * 0.12;
-    lo -= pad; hi += pad;
-
+    if (hi === lo) hi = lo + 1;
+    var pad = (hi - lo) * 0.12; lo -= pad; hi += pad;
     function X(i) { return PL + (iw * i) / (points.length - 1 || 1); }
     function Y(v) { return PT + ih - (ih * (v - lo)) / (hi - lo); }
 
-    var s = "";
-    // 가로 그리드 + y축 라벨
-    var TICKS = 4;
-    for (var t = 0; t <= TICKS; t++) {
-      var v = lo + ((hi - lo) * t) / TICKS, y = Y(v);
-      s += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y +
-        '" stroke="#eef0f3" stroke-width="1"/>';
-      s += '<text x="' + (PL - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#98a2b3">' +
-        manwon(v) + "</text>";
+    var s = "", t, i;
+    for (t = 0; t <= 4; t++) {
+      var v = lo + ((hi - lo) * t) / 4, y = Y(v);
+      s += '<line x1="' + PL + '" y1="' + y + '" x2="' + (W - PR) + '" y2="' + y + '" stroke="#eef0f3" stroke-width="1"/>';
+      s += '<text x="' + (PL - 10) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#98a2b3">' + manwon(v) + "</text>";
     }
-    // x축 라벨(약 7일 간격)
     var step = Math.max(1, Math.round(points.length / 6));
-    for (var i = 0; i < points.length; i += step) {
-      s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#98a2b3">' +
-        mmdd(points[i].date) + "</text>";
+    for (i = 0; i < points.length; i += step) {
+      s += '<text x="' + X(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="11" fill="#98a2b3">' + mmdd(points[i].date) + "</text>";
     }
-
-    // 영역 + 선
-    var line = points.map(function (p, i) { return (i ? "L" : "M") + X(i).toFixed(1) + " " + Y(p.balance).toFixed(1); }).join(" ");
-    var area = line + " L" + X(points.length - 1).toFixed(1) + " " + Y(lo).toFixed(1) +
-               " L" + X(0).toFixed(1) + " " + Y(lo).toFixed(1) + " Z";
+    var line = points.map(function (p, k) { return (k ? "L" : "M") + X(k).toFixed(1) + " " + Y(p.balance).toFixed(1); }).join(" ");
+    var area = line + " L" + X(points.length - 1).toFixed(1) + " " + Y(lo).toFixed(1) + " L" + X(0).toFixed(1) + " " + Y(lo).toFixed(1) + " Z";
     s += '<path d="' + area + '" fill="url(#g1)"/>';
     s += '<path d="' + line + '" fill="none" stroke="#1b4dd8" stroke-width="2.2" stroke-linejoin="round"/>';
 
-    // 최소 안전잔액 기준선
     var ys = Y(minSafety);
-    s += '<line x1="' + PL + '" y1="' + ys + '" x2="' + (W - PR) + '" y2="' + ys +
-         '" stroke="#b42318" stroke-width="1.3" stroke-dasharray="5 4"/>';
-    s += '<text x="' + (W - PR) + '" y="' + (ys - 7) + '" text-anchor="end" font-size="11" fill="#b42318">최소 안전잔액 ' +
-         manwon(minSafety) + "</text>";
+    s += '<line x1="' + PL + '" y1="' + ys + '" x2="' + (W - PR) + '" y2="' + ys + '" stroke="#b42318" stroke-width="1.3" stroke-dasharray="5 4"/>';
+    s += '<text x="' + (W - PR) + '" y="' + (ys - 7) + '" text-anchor="end" font-size="11" fill="#b42318">최소 안전잔액 ' + manwon(minSafety) + "</text>";
 
-    // 부족 예상일 표시
     if (shortageDate) {
-      for (var k = 0; k < points.length; k++) {
-        if (points[k].date === shortageDate) {
-          var xs = X(k);
-          s += '<line x1="' + xs + '" y1="' + PT + '" x2="' + xs + '" y2="' + (PT + ih) +
-               '" stroke="#b42318" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>';
-          s += '<circle cx="' + xs + '" cy="' + Y(points[k].balance) + '" r="4.5" fill="#b42318"/>';
+      for (var k2 = 0; k2 < points.length; k2++) {
+        if (points[k2].date === shortageDate) {
+          var xs = X(k2);
+          s += '<line x1="' + xs + '" y1="' + PT + '" x2="' + xs + '" y2="' + (PT + ih) + '" stroke="#b42318" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>';
+          s += '<circle cx="' + xs + '" cy="' + Y(points[k2].balance) + '" r="4.5" fill="#b42318"/>';
           break;
         }
       }
     }
-
-    // 수입/지출 이벤트 점
-    points.forEach(function (p, i) {
+    points.forEach(function (p, k3) {
       if (!p.events || !p.events.length) return;
-      s += '<circle cx="' + X(i) + '" cy="' + Y(p.balance) + '" r="3.6" fill="#fff" stroke="#1b4dd8" stroke-width="2">' +
-           "<title>" + escapeHtml(p.date + " · " + p.events.join(" / ")) + "</title></circle>";
+      s += '<circle cx="' + X(k3) + '" cy="' + Y(p.balance) + '" r="3.6" fill="#fff" stroke="#1b4dd8" stroke-width="2">' +
+        "<title>" + escapeHtml(p.date + " · " + p.events.join(" / ")) + "</title></circle>";
     });
-
     return '<svg class="chart" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="45일 현금흐름 예측 그래프">' +
       '<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">' +
       '<stop offset="0%" stop-color="#1b4dd8" stop-opacity="0.16"/>' +
@@ -446,8 +377,7 @@
     if (!sh) return;
     var pts, shortage = null;
     if (state.scenarioKey === "기본") {
-      pts = sh.daily_balances;
-      shortage = sh.minimum_balance_date;
+      pts = sh.daily_balances; shortage = sh.minimum_balance_date;
     } else {
       var sc = state.scenarios && state.scenarios.scenarios ? state.scenarios.scenarios[state.scenarioKey] : null;
       pts = sc || sh.daily_balances;
@@ -456,7 +386,6 @@
       }
     }
     el("chartWrap").innerHTML = drawChart(pts, sh.min_safety_balance, shortage);
-
     var lines = ['<span><i style="background:#1b4dd8"></i>예상 잔액</span>',
                  '<span><i style="background:#b42318"></i>최소 안전잔액</span>'];
     if (state.scenarioKey === "기본") lines.push("<span>◦ 점 = 정산·정기결제 발생일 (마우스를 올리면 내역)</span>");
@@ -468,52 +397,36 @@
     var keys = ["기본", "입금지연", "수입감소"];
     var labels = { "기본": "기본", "입금지연": "정산 10일 지연", "수입감소": "수입 30% 감소" };
     el("scenarioTabs").innerHTML = keys.map(function (k) {
-      return '<button class="tab" role="tab" data-k="' + k + '" aria-selected="' +
-        (k === state.scenarioKey) + '">' + labels[k] + "</button>";
+      return '<button class="tab" role="tab" data-k="' + k + '" aria-selected="' + (k === state.scenarioKey) + '">' + labels[k] + "</button>";
     }).join("");
     Array.prototype.forEach.call(el("scenarioTabs").querySelectorAll(".tab"), function (b) {
       b.addEventListener("click", function () {
         state.scenarioKey = b.getAttribute("data-k");
-        renderScenarioTabs();
-        renderChart();
+        renderScenarioTabs(); renderChart();
       });
     });
   }
 
-  // ---------- 섹션 렌더 ----------
+  // ---------- 섹션 ----------
   function renderShield(sh) {
     state.shield = sh;
-    var cls = riskClass(sh.risk_level);
-    var srcNote = sh.balance_source === "user_set"
-      ? "연결 계좌 기준"
-      : "최근 30일 수입·지출로 추정";
-
+    var srcNote = sh.balance_source === "user_set" ? "연결 계좌 기준" : "최근 30일 수입·지출로 추정";
     var days = null;
     if (sh.minimum_balance_date) {
-      // 백엔드(app/cashflow.py)는 날짜 단위로만 빼서 "N일 후"를 계산합니다. 여기서 시각까지
-      // 포함해 계산하면 하루 어긋나 보이므로(상단 "34일 후" vs 사유 "35일 후") 날짜만 씁니다.
       days = Math.round((new Date(sh.minimum_balance_date) - new Date(String(sh.calculated_at).slice(0, 10))) / 86400000);
     }
-
     el("shieldSummary").innerHTML =
-      '<div style="display:flex;gap:34px;align-items:flex-end;flex-wrap:wrap;margin-bottom:6px">' +
+      '<div style="display:flex;gap:34px;align-items:flex-end;flex-wrap:wrap;margin-bottom:10px">' +
         '<div><div class="label">현재 잔액 <span style="color:var(--text-faint)">· ' + escapeHtml(srcNote) + "</span></div>" +
           '<div class="metric num">' + won(sh.current_balance) + "</div></div>" +
-        '<div><div class="label">세금·건보료 제외 가용액</div>' +
-          '<div class="metric-sm num">' + won(sh.available_cash) + "</div></div>" +
-        "<div><div class=\"label\">45일 내 잔고 부족</div>" +
-          '<div class="metric-sm ' + (sh.minimum_balance_date ? "" : "") + '">' +
-            (sh.minimum_balance_date
-              ? '<span style="color:var(--danger)">' + escapeHtml(mmdd(sh.minimum_balance_date)) +
-                " (" + days + "일 후)</span>"
-              : '<span style="color:var(--safe)">예상 없음</span>') +
-          "</div></div>" +
-        '<div style="margin-left:auto"><span class="pill ' + cls + '"><span class="dot"></span>' +
-          escapeHtml(sh.risk_level) + "</span></div>" +
-      "</div>" +
-      '<ul class="reasons">' + (sh.risk_reasons || []).map(function (r) {
-        return "<li>" + escapeHtml(r) + "</li>";
-      }).join("") + "</ul>";
+        '<div><div class="label">세금·건보료 제외 가용액</div><div class="metric-sm num">' + won(sh.available_cash) + "</div></div>" +
+        '<div><div class="label">45일 내 잔고 부족</div><div class="metric-sm">' +
+          (sh.minimum_balance_date
+            ? '<span style="color:var(--danger)">' + escapeHtml(mmdd(sh.minimum_balance_date)) + " (" + days + "일 후)</span>"
+            : '<span style="color:var(--safe)">예상 없음</span>') + "</div></div>" +
+        '<div style="margin-left:auto"><span class="pill ' + riskClass(sh.risk_level) + '"><span class="dot"></span>' +
+          escapeHtml(sh.risk_level) + "</span></div></div>" +
+      '<ul class="reasons">' + (sh.risk_reasons || []).map(function (r) { return "<li>" + escapeHtml(r) + "</li>"; }).join("") + "</ul>";
 
     renderScenarioTabs();
     renderChart();
@@ -526,49 +439,38 @@
       '<div class="kv"><span class="label">수입 변동계수</span><span class="num">' +
         (sh.income_variability != null ? sh.income_variability.toFixed(2) : "—") + "</span></div>" +
       '<div class="muted-box" style="margin-top:14px">수입이 들쭉날쭉할수록 준비금을 더 넉넉히 잡습니다. ' +
-      '확정 세액·보험료가 아니라 미리 떼어둘 금액의 간이 추정치입니다.</div>';
+      "확정 세액·보험료가 아니라 미리 떼어둘 금액의 간이 추정치입니다.</div>";
   }
 
   function renderIncome(sum) {
-    el("incomePeriod").textContent = sum.period_label;
+    el("incomePeriod").textContent = "· " + sum.period_label;
     var rows = (sum.by_platform || []).map(function (p) {
       return '<div class="list-row"><span style="font-size:17px">' + escapeHtml(p.icon_emoji) + "</span>" +
-        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' +
-          escapeHtml(p.platform_name) + "</span>" +
+        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(p.platform_name) + "</span>" +
         '<span class="label">' + escapeHtml(p.platform_type) + " · " + p.event_count + "건</span></span>" +
         '<span class="num" style="font-weight:600">' + won(p.total_amount) + "</span></div>";
     }).join("");
-
     el("income").innerHTML =
       '<div class="label">정산 완료</div>' +
       '<div class="metric num" style="margin-bottom:12px">' + won(sum.total_settled) + "</div>" +
       '<div class="list">' + (rows || '<div class="skeleton">연결된 플랫폼이 없습니다.</div>') + "</div>" +
       (sum.unconnected_source_count
-        ? '<div class="muted-box" style="margin-top:12px">아직 연결하지 않은 플랫폼이 ' +
-          sum.unconnected_source_count + "곳 있습니다. 연결할수록 현금흐름 예측이 정확해집니다.</div>"
-        : "");
+        ? '<div class="muted-box" style="margin-top:12px">아직 연결하지 않은 플랫폼이 ' + sum.unconnected_source_count +
+          "곳 있습니다. 연결할수록 현금흐름 예측이 정확해집니다.</div>" : "");
   }
 
   function renderGig(g) {
     var pct = Math.max(0, Math.min(100, (g.score / 1000) * 100));
-    var names = {
-      platform_connect_rate: "수입 플랫폼 연결률",
-      spending_stability: "지출 안정성",
-      expense_diligence: "업무경비 인정률"
-    };
+    var names = { platform_connect_rate: "수입 플랫폼 연결률", spending_stability: "지출 안정성", expense_diligence: "업무경비 인정률" };
     var comp = Object.keys(g.components || {}).map(function (k) {
-      var v = g.components[k];
-      return '<div class="kv"><span class="label">' + escapeHtml(names[k] || k) + "</span>" +
-        '<span class="num">' + Math.round(v * 100) + "점</span></div>";
+      return '<div class="kv"><span class="label">' + escapeHtml(names[k] || k) + '</span><span class="num">' +
+        Math.round(g.components[k] * 100) + "점</span></div>";
     }).join("");
-
     el("gig").innerHTML =
-      '<div style="display:flex;align-items:baseline;gap:6px">' +
-        '<span class="metric num">' + g.score + "</span>" +
-        '<span class="label">/ 1000</span></div>' +
-      '<div class="gauge-track"><span style="width:' + pct.toFixed(1) + '%"></span></div>' +
-      comp +
-      '<div class="muted-box" style="margin-top:12px">여러 플랫폼의 정산 이력을 신용 정보로 환산한 자체 지표입니다. ' +
+      '<div style="display:flex;align-items:baseline;gap:6px"><span class="metric num">' + g.score +
+        '</span><span class="label">/ 1000</span></div>' +
+      '<div class="gauge-track"><span style="width:' + pct.toFixed(1) + '%"></span></div>' + comp +
+      '<div class="muted-box" style="margin-top:12px">여러 플랫폼의 정산 이력을 신용 지표로 환산한 자체 점수입니다. ' +
       "금융기관의 신용점수가 아닙니다.</div>";
   }
 
@@ -584,32 +486,21 @@
           '<span style="font-weight:550">' + escapeHtml(b.category) + "</span>" +
           '<span class="num" style="margin-left:auto;color:' + color + ';font-weight:600">' + pct.toFixed(0) + "%</span></div>" +
         '<div class="bar ' + cls + '"><span style="width:' + Math.min(100, pct).toFixed(1) + '%"></span></div>' +
-        '<div class="label num" style="margin-top:5px">' + won(b.spent_amount) + " / " + won(b.limit_amount) + "</div>" +
-        "</div>";
+        '<div class="label num" style="margin-top:5px">' + won(b.spent_amount) + " / " + won(b.limit_amount) + "</div></div>";
     }).join("") + "</div>";
   }
 
   function renderRisk(score, events) {
-    var cls = riskClass(score.severity);
-    el("riskBadge").innerHTML = '<span class="pill ' + cls + '"><span class="dot"></span>' +
+    el("riskBadge").innerHTML = '<span class="pill ' + riskClass(score.severity) + '"><span class="dot"></span>' +
       escapeHtml(score.severity) + " · " + score.score + "점</span>";
-
-    if (!events || !events.length) {
-      el("risk").innerHTML = '<div class="skeleton">탐지된 이상거래가 없습니다.</div>';
-      return;
-    }
+    if (!events || !events.length) { el("risk").innerHTML = '<div class="skeleton">탐지된 이상거래가 없습니다.</div>'; return; }
     el("risk").innerHTML = '<div class="list">' + events.slice(0, 6).map(function (e) {
-      var c = riskClass(e.severity);
       return '<div class="list-row">' +
-        '<span class="pill ' + c + '" style="min-width:66px;justify-content:center">' + escapeHtml(e.severity) + "</span>" +
-        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' +
-          escapeHtml(e.merchant_name || "가맹점 미상") +
-          (e.transaction_amount ? ' <span class="num" style="color:var(--text-muted);font-weight:400">' +
-            won(e.transaction_amount) + "</span>" : "") + "</span>" +
-        '<span class="label truncate" style="display:block">' + escapeHtml(e.rule_id) + " · " +
-          escapeHtml(e.description) + "</span></span>" +
-        '<span class="label num">' + escapeHtml(e.transaction_timestamp ? mmdd(e.transaction_timestamp) : "") + "</span>" +
-        "</div>";
+        '<span class="pill ' + riskClass(e.severity) + '" style="min-width:66px;justify-content:center">' + escapeHtml(e.severity) + "</span>" +
+        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(e.merchant_name || "가맹점 미상") +
+          (e.transaction_amount ? ' <span class="num" style="color:var(--text-muted);font-weight:400">' + won(e.transaction_amount) + "</span>" : "") + "</span>" +
+        '<span class="label truncate" style="display:block">' + escapeHtml(e.rule_id) + " · " + escapeHtml(e.description) + "</span></span>" +
+        '<span class="label num">' + escapeHtml(e.transaction_timestamp ? mmdd(e.transaction_timestamp) : "") + "</span></div>";
     }).join("") + "</div>";
   }
 
@@ -618,20 +509,14 @@
     var head = '<div style="display:flex;gap:28px;margin-bottom:12px">' +
       '<div><div class="label">업무경비 후보</div><div class="metric-sm num">' +
         q.filter(function (t) { return t.prob >= 50; }).length + "건</div></div>" +
-      '<div><div class="label">예상 환급액</div><div class="metric-sm num">' +
-        won(x.current_estimated_refund) + "</div></div></div>";
-
+      '<div><div class="label">예상 환급액</div><div class="metric-sm num">' + won(x.current_estimated_refund) + "</div></div></div>";
     if (!q.length) { el("expense").innerHTML = head + '<div class="skeleton">분류할 거래가 없습니다.</div>'; return; }
-
     el("expense").innerHTML = head + '<div class="list">' + q.slice(0, 6).map(function (t) {
-      var isBiz = t.prob >= 50;
       return '<div class="list-row">' +
-        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' +
-          escapeHtml(t.merchant) + "</span>" +
+        '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(t.merchant) + "</span>" +
         '<span class="label">' + escapeHtml(t.ai_tag) + "</span></span>" +
         '<span class="num label">' + won(t.amount) + "</span>" +
-        '<span class="pill ' + (isBiz ? "safe" : "neutral") + '" style="min-width:52px;justify-content:center">' +
-          t.prob + "%</span></div>";
+        '<span class="pill ' + (t.prob >= 50 ? "safe" : "neutral") + '" style="min-width:52px;justify-content:center">' + t.prob + "%</span></div>";
     }).join("") + "</div>";
   }
 
@@ -639,47 +524,45 @@
   function selectUser(uid) {
     state.userId = uid;
     state.scenarioKey = "기본";
-    renderSwitcher();
+    state.shield = null;
+    state.scenarios = null;
+
+    var cur = state.personas.filter(function (p) { return p.user_id === uid; })[0];
+    if (cur) {
+      el("userName").textContent = cur.name + " 님의 대시보드";
+      el("userTagline").textContent = cur.job + " · " + cur.tagline;
+    }
+    showDash();
     try { history.replaceState(null, "", "?user=" + uid); } catch (e) {}
 
     ["shieldSummary", "parking", "income", "gig", "budget", "risk", "expense"].forEach(function (id) {
       el(id).innerHTML = '<div class="skeleton">불러오는 중…</div>';
     });
     el("chartWrap").innerHTML = '<div class="skeleton">불러오는 중…</div>';
-    el("chartLegend").innerHTML = "";
-    el("riskBadge").innerHTML = "";
+    el("chartLegend").innerHTML = ""; el("riskBadge").innerHTML = "";
 
     get("/shield/" + uid).then(renderShield).catch(function () {
       fail("shieldSummary", "현금흐름 예측을 불러오지 못했습니다.");
-      fail("parking", "불러오지 못했습니다.");
-      el("chartWrap").innerHTML = "";
+      fail("parking", "불러오지 못했습니다."); el("chartWrap").innerHTML = "";
     });
-    get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; })
-      .catch(function () { state.scenarios = null; });
-    get("/income/summary?user_id=" + uid).then(renderIncome)
-      .catch(function () { fail("income", "수입 정보를 불러오지 못했습니다."); });
-    get("/gig-score/" + uid).then(renderGig)
-      .catch(function () { fail("gig", "Gig Score를 불러오지 못했습니다."); });
-    get("/budgets/usage?user_id=" + uid + "&period=monthly").then(renderBudget)
-      .catch(function () { fail("budget", "예산 정보를 불러오지 못했습니다."); });
+    get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () { state.scenarios = null; });
+    get("/income/summary?user_id=" + uid).then(renderIncome).catch(function () { fail("income", "수입 정보를 불러오지 못했습니다."); });
+    get("/gig-score/" + uid).then(renderGig).catch(function () { fail("gig", "Gig Score를 불러오지 못했습니다."); });
+    get("/budgets/usage?user_id=" + uid + "&period=monthly").then(renderBudget).catch(function () { fail("budget", "예산 정보를 불러오지 못했습니다."); });
     Promise.all([get("/risk/score/" + uid), get("/risk/events?user_id=" + uid + "&limit=10")])
-      .then(function (r) { renderRisk(r[0], r[1]); })
-      .catch(function () { fail("risk", "이상거래 정보를 불러오지 못했습니다."); });
-    get("/expense/classify?user_id=" + uid + "&limit=20").then(renderExpense)
-      .catch(function () { fail("expense", "경비 분류를 불러오지 못했습니다."); });
+      .then(function (r) { renderRisk(r[0], r[1]); }).catch(function () { fail("risk", "이상거래 정보를 불러오지 못했습니다."); });
+    get("/expense/classify?user_id=" + uid + "&limit=20").then(renderExpense).catch(function () { fail("expense", "경비 분류를 불러오지 못했습니다."); });
   }
 
   get("/demo/personas").then(function (d) {
     state.personas = d.personas || [];
     el("disclaimer").textContent = d.note || "";
+    renderPersonaGrid();
     var q = new URLSearchParams(location.search).get("user");
     var ids = state.personas.map(function (p) { return p.user_id; });
-    var start = (q && ids.indexOf(q) >= 0) ? q : (ids.indexOf(DEFAULT_USER) >= 0 ? DEFAULT_USER : ids[0]);
-    if (!start) throw new Error("no personas");
-    selectUser(start);
+    if (q && ids.indexOf(q) >= 0) selectUser(q);  // 링크로 특정 인물을 바로 열 수 있게
   }).catch(function () {
-    el("switcherLabel").textContent = "불러오기 실패";
-    fail("shieldSummary", "데모 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.");
+    el("personaGrid").innerHTML = '<div class="err">데모 데이터를 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
   });
 })();
 </script>
