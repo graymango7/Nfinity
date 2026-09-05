@@ -131,6 +131,29 @@
   .kv + .kv { border-top: 1px solid #f0f2f5; }
   .muted-box { background: #f9fafb; border: 1px solid var(--border); border-radius: 8px;
     padding: 11px 13px; font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+  /* 입력 요소 */
+  .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+  .field > label { font-size: 12px; color: var(--text-muted); }
+  input[type="text"], input[type="number"], select {
+    font-family: inherit; font-size: 13px; color: var(--text); background: #fff;
+    border: 1px solid var(--border-strong); border-radius: 7px; padding: 7px 10px; width: 100%;
+  }
+  input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .btn { font-family: inherit; font-size: 13px; font-weight: 600; border-radius: 7px;
+    padding: 8px 14px; cursor: pointer; border: 1px solid transparent; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #1740b8; }
+  .btn-primary:disabled { background: #a9bdf0; cursor: default; }
+  .btn-sm { padding: 5px 11px; font-size: 12.5px; }
+  .btn-outline { background: #fff; border-color: var(--border-strong); color: var(--text); }
+  .btn-outline:hover { background: #fafbfc; }
+  .chip { font-family: inherit; font-size: 12px; background: #f2f4f7; border: 1px solid var(--border);
+    color: var(--text-muted); border-radius: 999px; padding: 5px 11px; cursor: pointer; }
+  .chip:hover { background: #eaecf0; color: var(--text); }
+  .toast { position: fixed; right: 20px; bottom: 20px; z-index: 100; background: #101828; color: #fff;
+    font-size: 13px; padding: 12px 16px; border-radius: 9px; box-shadow: 0 10px 30px rgba(16,24,40,.24);
+    max-width: 380px; line-height: 1.5; }
+
   .skeleton { color: var(--text-faint); font-size: 13px; padding: 8px 0; }
   .err { color: var(--danger); font-size: 12.5px; background: var(--danger-soft);
     border: 1px solid #fecdca; border-radius: 7px; padding: 9px 11px; }
@@ -200,6 +223,7 @@
         <div class="card">
           <div class="card-title">플랫폼별 수입 <span class="label" id="incomePeriod"></span></div>
           <div id="income"><div class="skeleton">불러오는 중…</div></div>
+          <div id="sources"></div>
         </div>
         <div class="card">
           <div class="card-title">Gig Score</div>
@@ -233,8 +257,41 @@
         <span class="desc">규칙 엔진 7종 + Isolation Forest 이상탐지 앙상블</span>
         <span class="right" id="riskBadge"></span>
       </div>
-      <div class="card">
-        <div id="risk"><div class="skeleton">불러오는 중…</div></div>
+      <div class="grid row-2">
+        <div class="card">
+          <div class="card-title">거래 위험도 즉시 검사</div>
+          <div class="label" style="margin-bottom:12px">
+            결제 정보를 넣으면 규칙 엔진 7종과 이상탐지 모델이 함께 판정합니다.
+            판정 결과는 이 사용자의 탐지 이력에 실제로 기록됩니다.
+          </div>
+          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px" id="assessPresets"></div>
+          <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:10px;margin-bottom:10px">
+            <div class="field"><label for="afMerchant">가맹점</label>
+              <input type="text" id="afMerchant" value="스타벅스 강남점"></div>
+            <div class="field"><label for="afAmount">금액 (원)</label>
+              <input type="number" id="afAmount" value="5600" min="0" step="100"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+            <div class="field"><label for="afHour">결제 시각</label>
+              <select id="afHour"></select></div>
+            <div class="field"><label for="afCountry">결제 국가</label>
+              <select id="afCountry">
+                <option value="KR">대한민국</option><option value="US">미국</option>
+                <option value="JP">일본</option><option value="CN">중국</option>
+              </select></div>
+            <div class="field"><label for="afDevice">결제 기기</label>
+              <select id="afDevice">
+                <option value="known">평소 쓰던 기기</option>
+                <option value="new">처음 보는 기기</option>
+              </select></div>
+          </div>
+          <button class="btn btn-primary" id="assessBtn">위험도 검사</button>
+          <div id="assessResult" style="margin-top:14px"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">탐지 이력</div>
+          <div id="risk"><div class="skeleton">불러오는 중…</div></div>
+        </div>
       </div>
     </div>
   </div>
@@ -439,7 +496,30 @@
       '<div class="kv"><span class="label">수입 변동계수</span><span class="num">' +
         (sh.income_variability != null ? sh.income_variability.toFixed(2) : "—") + "</span></div>" +
       '<div class="muted-box" style="margin-top:14px">수입이 들쭉날쭉할수록 준비금을 더 넉넉히 잡습니다. ' +
-      "확정 세액·보험료가 아니라 미리 떼어둘 금액의 간이 추정치입니다.</div>";
+      "확정 세액·보험료가 아니라 미리 떼어둘 금액의 간이 추정치입니다.</div>" +
+      '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' +
+        '<label class="label" for="safetyInput">최소 안전잔액 (이 밑으로 떨어지면 경고)</label>' +
+        '<div style="display:flex;gap:8px;margin-top:6px">' +
+          '<input type="number" id="safetyInput" step="50000" min="0" value="' +
+            Math.round(sh.min_safety_balance) + '">' +
+          '<button class="btn btn-outline btn-sm" id="safetyBtn" style="white-space:nowrap">적용</button>' +
+        "</div></div>";
+
+    el("safetyBtn").addEventListener("click", function () {
+      var v = Number(el("safetyInput").value);
+      if (!(v >= 0)) return;
+      var btn = el("safetyBtn");
+      btn.disabled = true; btn.textContent = "…";
+      // 서버에 실제로 저장하고, 저장된 값으로 시뮬레이션을 다시 받아 화면을 갱신합니다.
+      send("PUT", "/shield/" + state.userId + "/settings", { min_safety_balance: v })
+        .then(function () { return Promise.all([get("/shield/" + state.userId), get("/shield/" + state.userId + "/scenarios")]); })
+        .then(function (r) {
+          state.scenarios = r[1];
+          renderShield(r[0]);
+          toast("최소 안전잔액을 " + won(v) + "으로 저장했습니다. 예측을 다시 계산했습니다.");
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = "적용"; toast("저장하지 못했습니다."); });
+    });
   }
 
   function renderIncome(sum) {
@@ -520,6 +600,151 @@
     }).join("") + "</div>";
   }
 
+  // ---------- 쓰기 동작 (실제로 서버 상태를 바꿉니다) ----------
+  function send(method, path, body) {
+    return fetch(API + path, {
+      method: method,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: body ? JSON.stringify(body) : undefined
+    }).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var box = document.getElementById("toastBox");
+    if (!box) {
+      box = document.createElement("div");
+      box.id = "toastBox"; box.className = "toast";
+      document.body.appendChild(box);
+    }
+    box.textContent = msg;
+    box.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { box.hidden = true; }, 4200);
+  }
+
+  /** 수입 플랫폼 연결/해제. 연결 상태는 현금흐름 예측에 그대로 반영되므로,
+   *  성공하면 수입·예측을 모두 다시 불러와 화면 전체를 최신 상태로 맞춥니다. */
+  function renderSources(list) {
+    var pending = (list || []).filter(function (s) { return !s.connected; });
+    var connected = (list || []).filter(function (s) { return s.connected; });
+    if (!pending.length) {
+      el("sources").innerHTML = '<div class="muted-box" style="margin-top:12px">' +
+        "수입 플랫폼 " + connected.length + "곳이 모두 연결되어 있습니다. 예측에 전부 반영됩니다.</div>";
+      return;
+    }
+    el("sources").innerHTML = '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">' +
+      '<div class="label" style="margin-bottom:8px">연결하지 않은 플랫폼 — 연결하면 이 수입까지 예측에 반영됩니다</div>' +
+      pending.map(function (s) {
+        return '<div class="list-row"><span style="font-size:17px">' + escapeHtml(s.icon_emoji) + "</span>" +
+          '<span class="grow"><span style="font-weight:550">' + escapeHtml(s.platform_name) + "</span>" +
+          '<span class="label" style="display:block">' + escapeHtml(s.platform_type) +
+            " · 정산 내역 " + s.pending_event_count + "건 대기</span></span>" +
+          '<button class="btn btn-primary btn-sm" data-sid="' + escapeHtml(s.source_id) + '">연결하기</button></div>';
+      }).join("") + "</div>";
+
+    Array.prototype.forEach.call(el("sources").querySelectorAll("button[data-sid]"), function (b) {
+      b.addEventListener("click", function () {
+        var sid = b.getAttribute("data-sid");
+        b.disabled = true; b.textContent = "연결 중…";
+        send("POST", "/income/sources/" + sid + "/connect?user_id=" + state.userId)
+          .then(function (res) {
+            toast(res.platform_name + " 연결 완료 — 정산 내역 " + res.revealed_event_count +
+                  "건을 찾았습니다. 현금흐름 예측을 다시 계산합니다.");
+            return loadIncome(state.userId).then(function () {
+              return Promise.all([get("/shield/" + state.userId), get("/shield/" + state.userId + "/scenarios")]);
+            });
+          })
+          .then(function (r) { state.scenarios = r[1]; renderShield(r[0]); })
+          .catch(function () { b.disabled = false; b.textContent = "연결하기"; toast("연결하지 못했습니다."); });
+      });
+    });
+  }
+
+  function loadIncome(uid) {
+    return Promise.all([get("/income/summary?user_id=" + uid), get("/income/sources?user_id=" + uid)])
+      .then(function (r) { renderIncome(r[0]); renderSources(r[1]); })
+      .catch(function () { fail("income", "수입 정보를 불러오지 못했습니다."); });
+  }
+
+  /** 거래 위험도 즉시 검사 — POST /risk/assess. 실제 룰 엔진 + Isolation Forest 앙상블을
+   *  그대로 통과하며, 판정 결과는 risk_events에 기록되어 옆 탐지 이력에도 바로 반영됩니다. */
+  var PRESETS = [
+    { label: "평범한 카페 결제", merchant: "스타벅스 강남점", amount: 5600, hour: 14, country: "KR", device: "known" },
+    { label: "심야 금은방 고액", merchant: "종로금은방", amount: 3200000, hour: 2, country: "KR", device: "known" },
+    { label: "해외 사이트 결제", merchant: "Steam_Global", amount: 600000, hour: 3, country: "US", device: "known" },
+    { label: "낯선 기기에서 결제", merchant: "쿠팡", amount: 480000, hour: 11, country: "KR", device: "new" }
+  ];
+
+  function setupAssess() {
+    var hourSel = el("afHour");
+    if (!hourSel.options.length) {
+      var opts = "";
+      for (var h = 0; h < 24; h++) opts += '<option value="' + h + '">' + (h < 10 ? "0" + h : h) + ":00</option>";
+      hourSel.innerHTML = opts;
+      hourSel.value = "14";
+    }
+    el("assessPresets").innerHTML = PRESETS.map(function (p, i) {
+      return '<button class="chip" data-i="' + i + '">' + escapeHtml(p.label) + "</button>";
+    }).join("");
+    Array.prototype.forEach.call(el("assessPresets").querySelectorAll(".chip"), function (b) {
+      b.addEventListener("click", function () {
+        var p = PRESETS[Number(b.getAttribute("data-i"))];
+        el("afMerchant").value = p.merchant; el("afAmount").value = p.amount;
+        el("afHour").value = String(p.hour); el("afCountry").value = p.country; el("afDevice").value = p.device;
+      });
+    });
+  }
+
+  function runAssess() {
+    var btn = el("assessBtn");
+    btn.disabled = true; btn.textContent = "검사 중…";
+
+    // 평가 시각은 데모 기준 시각(가장 최근 거래일)의 해당 시간으로 맞춥니다.
+    // 실제 서버 시각으로 보내면 mock 데이터 기간을 한참 벗어나 과거 이력 기반 규칙
+    // (단기 반복·이동속도 등)이 비교할 이력을 못 찾습니다.
+    var base = state.shield && state.shield.calculated_at ? String(state.shield.calculated_at).slice(0, 10)
+                                                          : new Date().toISOString().slice(0, 10);
+    var hh = String(el("afHour").value); if (hh.length < 2) hh = "0" + hh;
+    var payload = {
+      user_id: state.userId,
+      merchant_name: el("afMerchant").value || "미상 가맹점",
+      amount: Number(el("afAmount").value) || 0,
+      timestamp: base + "T" + hh + ":30:00",
+      country: el("afCountry").value,
+      device_id: el("afDevice").value === "new" ? "device_new_" + Date.now() : "device_primary"
+    };
+
+    send("POST", "/risk/assess", payload).then(function (res) {
+      var cls = riskClass(res.severity);
+      var actionText = { ALLOW: "정상 승인", FLAG_FOR_REVIEW: "검토 대상으로 표시",
+        REQUIRE_CONFIRMATION: "본인 확인 요청", BLOCK: "결제 차단" };
+      el("assessResult").innerHTML =
+        '<div style="border:1px solid var(--border);border-radius:9px;padding:14px">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">' +
+            '<span class="pill ' + cls + '"><span class="dot"></span>' + escapeHtml(res.severity) + "</span>" +
+            '<span class="metric-sm num">' + res.score + "점</span>" +
+            '<span class="label" style="margin-left:auto">조치: <b style="color:var(--text)">' +
+              escapeHtml(actionText[res.action] || res.action) + "</b></span></div>" +
+          (res.triggered_rules && res.triggered_rules.length
+            ? '<div class="list">' + res.triggered_rules.map(function (t) {
+                return '<div class="list-row"><span class="pill ' + riskClass(t.severity) +
+                  '" style="min-width:66px;justify-content:center">' + escapeHtml(t.severity) + "</span>" +
+                  '<span class="grow label">' + escapeHtml(t.rule_id) + " · " + escapeHtml(t.description) + "</span></div>";
+              }).join("") + "</div>"
+            : '<div class="label">걸린 규칙이 없습니다. 평소 결제 패턴과 크게 다르지 않습니다.</div>') +
+        "</div>";
+      // 방금 평가가 이력에 기록됐으니 옆 타임라인과 종합 점수도 갱신합니다.
+      return Promise.all([get("/risk/score/" + state.userId), get("/risk/events?user_id=" + state.userId + "&limit=10")]);
+    }).then(function (r) { renderRisk(r[0], r[1]); })
+      .catch(function () { el("assessResult").innerHTML = '<div class="err">검사에 실패했습니다.</div>'; })
+      .then(function () { btn.disabled = false; btn.textContent = "위험도 검사"; });
+  }
+  el("assessBtn").addEventListener("click", runAssess);
+
   // ---------- 로딩 ----------
   function selectUser(uid) {
     state.userId = uid;
@@ -546,7 +771,10 @@
       fail("parking", "불러오지 못했습니다."); el("chartWrap").innerHTML = "";
     });
     get("/shield/" + uid + "/scenarios").then(function (s) { state.scenarios = s; }).catch(function () { state.scenarios = null; });
-    get("/income/summary?user_id=" + uid).then(renderIncome).catch(function () { fail("income", "수입 정보를 불러오지 못했습니다."); });
+    el("sources").innerHTML = "";
+    el("assessResult").innerHTML = "";
+    setupAssess();
+    loadIncome(uid);
     get("/gig-score/" + uid).then(renderGig).catch(function () { fail("gig", "Gig Score를 불러오지 못했습니다."); });
     get("/budgets/usage?user_id=" + uid + "&period=monthly").then(renderBudget).catch(function () { fail("budget", "예산 정보를 불러오지 못했습니다."); });
     Promise.all([get("/risk/score/" + uid), get("/risk/events?user_id=" + uid + "&limit=10")])
