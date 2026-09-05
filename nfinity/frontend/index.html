@@ -388,6 +388,14 @@
       return r.json();
     });
   }
+  // 백엔드가 주는 영문 등급/규칙 코드는 내부용 표현입니다. 사용자에게는 한글로 보여주고,
+  // 규칙 코드(R003 등)는 근거를 확인하고 싶은 사람만 볼 수 있게 툴팁으로 넘깁니다.
+  function sevLabel(s) { return { LOW: "정상", MEDIUM: "주의", HIGH: "경고", CRITICAL: "위험" }[s] || s; }
+  // 경비 인정 확률을 3단계로 나눠, 낮은 항목이 "AI가 잘못 골랐다"처럼 보이지 않게 합니다.
+  function expenseTone(p) { return p >= 50 ? "safe" : p >= 30 ? "warn" : "neutral"; }
+  function expenseTag(p) { return p >= 50 ? "경비 인정 가능" : p >= 30 ? "확인 필요" : "개인지출 추정"; }
+  function gigGrade(v) { return v >= 800 ? "우수" : v >= 700 ? "양호" : v >= 500 ? "보통" : "주의"; }
+
   function riskClass(level) {
     if (level === "위험" || level === "CRITICAL" || level === "HIGH") return "danger";
     if (level === "주의" || level === "MEDIUM") return "warn";
@@ -509,6 +517,7 @@
     var lines = ['<span><i style="background:#3182f6"></i>예상 잔액</span>',
                  '<span><i style="background:#f04452"></i>최소 안전잔액</span>'];
     if (state.scenarioKey === "기본") lines.push("<span>◦ 점 = 정산·정기결제 발생일 (마우스를 올리면 내역)</span>");
+    else lines.push("<span>가정에 따른 예상 경로입니다 — N잡러에게 가장 잦은 두 상황(정산 지연·일감 감소)을 적용했습니다</span>");
     if (shortage) lines.push('<span style="color:#f04452">▎' + escapeHtml(mmdd(shortage)) + " 잔고 부족 예상</span>");
     el("chartLegend").innerHTML = lines.join("");
   }
@@ -579,8 +588,14 @@
     }).join("");
     el("gig").innerHTML =
       '<div style="display:flex;align-items:baseline;gap:6px"><span class="metric num">' + g.score +
-        '</span><span class="label">/ 1000</span></div>' +
-      '<div class="gauge-track"><span style="width:' + pct.toFixed(1) + '%"></span></div>' + comp +
+        '</span><span class="label">/ 1000</span>' +
+        '<span class="pill ' + (g.score >= 700 ? "safe" : g.score >= 500 ? "warn" : "neutral") +
+        '" style="margin-left:auto">' + gigGrade(g.score) + "</span></div>" +
+      '<div class="gauge-track" style="position:relative;overflow:visible">' +
+        '<span style="width:' + pct.toFixed(1) + '%"></span>' +
+        '<span style="position:absolute;left:70%;top:-3px;width:2px;height:14px;background:var(--text-faint);border-radius:1px"></span>' +
+      "</div>" +
+      '<div class="label" style="margin-bottom:10px">눈금은 양호 기준선 700점</div>' + comp +
       '<div class="muted-box" style="margin-top:12px">여러 플랫폼의 정산 이력을 신용 지표로 환산한 자체 점수입니다. ' +
       "금융기관의 신용점수가 아닙니다.</div>";
   }
@@ -603,14 +618,14 @@
 
   function renderRisk(score, events) {
     el("riskBadge").innerHTML = '<span class="pill ' + riskClass(score.severity) + '"><span class="dot"></span>' +
-      escapeHtml(score.severity) + " · " + score.score + "점</span>";
+      escapeHtml(sevLabel(score.severity)) + " · " + score.score + "점</span>";
     if (!events || !events.length) { el("risk").innerHTML = '<div class="skeleton">탐지된 이상거래가 없습니다.</div>'; return; }
     el("risk").innerHTML = '<div class="list">' + events.slice(0, 6).map(function (e) {
       return '<div class="list-row">' +
-        '<span class="pill ' + riskClass(e.severity) + '" style="min-width:66px;justify-content:center">' + escapeHtml(e.severity) + "</span>" +
+        '<span class="pill ' + riskClass(e.severity) + '" style="min-width:52px;justify-content:center">' + escapeHtml(sevLabel(e.severity)) + "</span>" +
         '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(e.merchant_name || "화면에서 직접 검사한 거래") +
           (e.transaction_amount ? ' <span class="num" style="color:var(--text-muted);font-weight:400">' + won(e.transaction_amount) + "</span>" : "") + "</span>" +
-        '<span class="label truncate" style="display:block">' + escapeHtml(e.rule_id) + " · " + escapeHtml(e.description) + "</span></span>" +
+        '<span class="label truncate" style="display:block" title="' + escapeHtml(e.rule_id) + '">' + escapeHtml(e.description) + "</span></span>" +
         '<span class="label num">' + escapeHtml(e.transaction_timestamp ? mmdd(e.transaction_timestamp) : "") + "</span></div>";
     }).join("") + "</div>";
   }
@@ -627,14 +642,15 @@
     // 인정 확률이 높은 것부터 정렬합니다(50% 이상이 경비 후보).
     q = q.slice().sort(function (a, b) { return (b.prob || 0) - (a.prob || 0); });
     el("expense").innerHTML = head +
-      '<div class="label" style="margin-bottom:6px">최근 거래 ' + q.length +
-      '건의 분류 결과 · 50% 이상이 경비 후보입니다</div>' +
+      '<div class="label" style="margin-bottom:8px">최근 거래 ' + q.length + '건의 분류 결과 · ' +
+      '<span style="color:var(--safe);font-weight:600">초록</span>은 경비 인정 가능, ' +
+      '<span style="color:var(--warn);font-weight:600">노랑</span>은 직접 확인이 필요한 건입니다</div>' +
       '<div class="list">' + q.map(function (t) {
       return '<div class="list-row">' +
         '<span class="grow"><span class="truncate" style="display:block;font-weight:550">' + escapeHtml(t.merchant) + "</span>" +
-        '<span class="label">' + escapeHtml(t.ai_tag) + "</span></span>" +
+        '<span class="label">' + escapeHtml(t.ai_tag) + " · " + expenseTag(t.prob) + "</span></span>" +
         '<span class="num label">' + won(t.amount) + "</span>" +
-        '<span class="pill ' + (t.prob >= 50 ? "safe" : "neutral") + '" style="min-width:52px;justify-content:center">' + t.prob + "%</span></div>";
+        '<span class="pill ' + expenseTone(t.prob) + '" style="min-width:52px;justify-content:center">' + t.prob + "%</span></div>";
     }).join("") + "</div>";
   }
 
@@ -961,9 +977,8 @@
                 res.triggered_rules.length + "가지</div>" +
               '<div class="list">' + res.triggered_rules.map(function (t) {
                 return '<div class="list-row"><span class="pill ' + riskClass(t.severity) +
-                  '" style="min-width:66px;justify-content:center">' + escapeHtml(t.severity) + "</span>" +
-                  '<span class="grow">' + escapeHtml(t.description) +
-                  ' <span class="label">(' + escapeHtml(t.rule_id) + ")</span></span></div>";
+                  '" style="min-width:52px;justify-content:center">' + escapeHtml(sevLabel(t.severity)) + "</span>" +
+                  '<span class="grow" title="' + escapeHtml(t.rule_id) + '">' + escapeHtml(t.description) + "</span></div>";
               }).join("") + "</div>"
             : '<div class="label" style="margin-top:10px">걸린 규칙이 없습니다 — 이 사용자의 평소 결제 패턴과 크게 다르지 않습니다.</div>') +
           '<div class="label" style="margin-top:14px;color:var(--text-faint)">' +
