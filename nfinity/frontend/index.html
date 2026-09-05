@@ -96,6 +96,11 @@
   .vp b { display: block; font-size: 15px; letter-spacing: -0.02em; margin-bottom: 6px; }
   .vp span { font-size: 13.5px; color: var(--text-muted); line-height: 1.6; }
 
+  .evidence { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .evidence span { background: #fff; border-radius: 999px; padding: 9px 16px; font-size: 13.5px;
+    color: var(--text-muted); box-shadow: 0 1px 2px rgba(0,0,0,.03); }
+  .evidence b { color: var(--text); font-weight: 700; }
+
   .panehint { font-size: 13.5px; color: var(--text-muted); margin: -2px 0 14px; }
 
   /* 3단 탭 */
@@ -229,6 +234,12 @@
         <span>5월 종합소득세와 건강보험료를 실제 산식으로 계산하고, 2,000만원 기준을 넘기 전에 알려줍니다.</span></div>
       <div class="vp"><span class="vpi">🛡️</span><b>이상한 결제를 막아주는지</b>
         <span>규칙 7종과 이상탐지 AI가 결제 순간 위험도를 매겨 승인·본인확인·차단을 정합니다.</span></div>
+    </div>
+    <div class="evidence">
+      <span><b>4,978건</b> 실거래 재현 검증</span>
+      <span><b>73.4%</b> 이상거래 탐지율</span>
+      <span><b>1.0%</b> 정상거래 오탐률</span>
+      <span><b>2026년</b> 세율·건보료율 실적용</span>
     </div>
     <div class="pick">아래 세 사람 중 한 명을 골라, 그 사람의 실제 데이터로 위 기능들을 확인해보세요.</div>
     <div class="persona-grid" id="personaGrid">
@@ -517,7 +528,16 @@
     var lines = ['<span><i style="background:#3182f6"></i>예상 잔액</span>',
                  '<span><i style="background:#f04452"></i>최소 안전잔액</span>'];
     if (state.scenarioKey === "기본") lines.push("<span>◦ 점 = 정산·정기결제 발생일 (마우스를 올리면 내역)</span>");
-    else lines.push("<span>가정에 따른 예상 경로입니다 — N잡러에게 가장 잦은 두 상황(정산 지연·일감 감소)을 적용했습니다</span>");
+    else {
+      lines.push("<span>가정에 따른 예상 경로입니다 — N잡러에게 가장 잦은 두 상황(정산 지연·일감 감소)을 적용했습니다</span>");
+      var base = sh.minimum_balance_date;
+      if (shortage && base) {
+        var gap = Math.round((new Date(base) - new Date(shortage)) / 86400000);
+        if (gap > 0) lines.push('<span style="color:#f04452;font-weight:700">기본 대비 ' + gap + "일 앞당겨짐</span>");
+      } else if (shortage && !base) {
+        lines.push('<span style="color:#f04452;font-weight:700">기본에서는 없던 잔고 부족이 생깁니다</span>');
+      }
+    }
     if (shortage) lines.push('<span style="color:#f04452">▎' + escapeHtml(mmdd(shortage)) + " 잔고 부족 예상</span>");
     el("chartLegend").innerHTML = lines.join("");
   }
