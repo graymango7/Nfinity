@@ -4,22 +4,22 @@
 # 이후로는 이 저장소의 main 브랜치에 git push할 때마다 자동으로 재배포됩니다(autoDeploy).
 
 services:
-  - name: sidegig-ai
+  - name: nfinity-ai
     type: web
     runtime: docker
     plan: free
-    dockerfilePath: ./sidegig_ai/Dockerfile
-    dockerContext: ./sidegig_ai
+    dockerfilePath: ./nfinity/Dockerfile
+    dockerContext: ./nfinity
     healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: DATABASE_URL
         fromDatabase:
-          name: sidegig-db
+          name: nfinity-db
           property: connectionString
       - key: REDIS_URL
         fromService:
-          name: sidegig-redis
+          name: nfinity-redis
           type: keyvalue
           property: connectionString
       # 대회 운영진이 공식적으로 데모(가상) 데이터 시연을 허용한 구조라, README의
@@ -31,12 +31,12 @@ services:
       - key: GEMINI_API_KEY
         sync: false
 
-  - name: sidegig-redis
+  - name: nfinity-redis
     type: keyvalue
     plan: free
     ipAllowList: []
     maxmemoryPolicy: allkeys-lru
 
 databases:
-  - name: sidegig-db
+  - name: nfinity-db
     plan: free

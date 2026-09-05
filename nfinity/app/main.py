@@ -42,7 +42,7 @@ from app.security_headers import SecurityHeadersMiddleware
 from app.startup_seed import run_startup_seed
 
 app = FastAPI(
-    title="SideGig AI API",
+    title="Nfinity API",
     description="N잡러를 위한 리스크방어 & 예산통제 플랫폼 백엔드",
     version="0.2.0",
 )
