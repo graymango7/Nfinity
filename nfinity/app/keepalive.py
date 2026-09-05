@@ -32,7 +32,7 @@ import urllib.request
 logger = logging.getLogger("nfinity.keepalive")
 
 # 15분 스핀다운 기준으로 여유를 둡니다.
-KEEPALIVE_INTERVAL_SECONDS = int(os.environ.get("KEEPALIVE_INTERVAL_SECONDS", "600"))
+KEEPALIVE_INTERVAL_SECONDS = int(os.environ.get("KEEPALIVE_INTERVAL_SECONDS", "300"))
 
 
 def _public_health_url() -> str | None:
@@ -48,8 +48,9 @@ def _public_health_url() -> str | None:
 # 보게 됩니다. 실제로 플랫폼 하나가 연결된 채로 남아 잔고 부족 예상일이 사라지고(9/26 → 없음)
 # 세금이 환급에서 납부로 뒤집혀, 기능명세서에 적어둔 확인 절차의 예상 결과와 화면이
 # 어긋나는 상황이 발생했습니다. 관람자가 자기 조작 결과를 확인할 시간은 남기되
-# 어긋난 상태가 오래가지 않도록 10분으로 줄였습니다.
-DEMO_RESET_INTERVAL_SECONDS = int(os.environ.get("DEMO_RESET_INTERVAL_SECONDS", "600"))
+# 어긋난 상태가 오래가지 않도록 5분으로 줄였습니다. 관람자가 자기 조작 결과를 확인하기에는
+# 충분하고(연결 즉시 화면이 다시 계산되어 바로 보임), 다음 사람이 어긋난 값을 볼 여지는 최소화됩니다.
+DEMO_RESET_INTERVAL_SECONDS = int(os.environ.get("DEMO_RESET_INTERVAL_SECONDS", "300"))
 
 
 async def _loop(url: str):
