@@ -122,7 +122,19 @@ def _backtest_recurring(db: Session, user_ids: list[str]) -> dict:
     if not rows:
         return {"samples": 0, "mean_absolute_error_days": None, "within_3days_rate": None}
 
-    df = pd.DataFrame([dict(r) for r in rows])
+    # Postgres NUMERIC은 Decimal로 들어오는데, 탐지 로직이 float와 섞어 연산하므로 여기서 맞춥니다
+    # (Decimal * float은 TypeError가 납니다).
+    df = pd.DataFrame(
+        [
+            {
+                "user_id": r["user_id"],
+                "merchant_name": r["merchant_name"],
+                "amount": float(r["amount"]),
+                "timestamp": r["timestamp"],
+            }
+            for r in rows
+        ]
+    )
     detected = detect_recurring_payments(df)
 
     errors = []
@@ -146,8 +158,15 @@ def _backtest_recurring(db: Session, user_ids: list[str]) -> dict:
 def forecast_accuracy(db: Session = Depends(get_db)):
     """예측 엔진의 홀드아웃 검증 결과. 시연 인물 전체를 대상으로 계산합니다."""
     user_ids = [p["user_id"] for p in DEMO_PERSONAS]
-    income = _backtest_income(db, user_ids)
-    recurring = _backtest_recurring(db, user_ids)
+    # 한쪽 검증이 실패해도 나머지 결과는 돌려줍니다.
+    try:
+        income = _backtest_income(db, user_ids)
+    except Exception as exc:
+        income = {"samples": 0, "error": type(exc).__name__ + ": " + str(exc)[:120]}
+    try:
+        recurring = _backtest_recurring(db, user_ids)
+    except Exception as exc:
+        recurring = {"samples": 0, "error": type(exc).__name__ + ": " + str(exc)[:120]}
     return {
         "method": (
             "각 플랫폼·가맹점의 마지막 발생 건을 감춘 뒤, 그 이전 기록만으로 발생일과 금액을 "
