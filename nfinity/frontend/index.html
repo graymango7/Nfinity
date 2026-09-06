@@ -248,10 +248,47 @@
       <span><b>55.5%</b> 탐지 정밀도</span>
       <span><b>2026년</b> 세율·건보료율 실적용</span>
     </div>
+    <div style="margin-top:26px">
+      <button class="btn btn-outline" id="tryMineBtn">내 수입으로 직접 계산해보기 →</button>
+    </div>
     <div class="pick">아래 세 사람 중 한 명을 골라, 그 사람의 실제 데이터로 위 기능들을 확인해보세요.</div>
     <div class="persona-grid" id="personaGrid">
       <div class="skeleton">불러오는 중…</div>
     </div>
+  </div>
+</div>
+
+<!-- ===== 1-2) 직접 입력 시뮬레이터 ===== -->
+<div id="viewSim" hidden>
+  <div class="landing" style="max-width:900px">
+    <h1 style="font-size:30px">내 수입으로 계산해보기</h1>
+    <p class="lede">플랫폼마다 <b>며칠 주기로 얼마가</b> 들어오는지만 넣으면, 앞으로 45일 잔고를
+      하루 단위로 계산합니다. 입력값은 저장하지 않습니다.</p>
+
+    <div class="card" style="margin-top:26px">
+      <div class="card-title">지금 상황</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:6px">
+        <div class="field"><label for="simBal">현재 잔액 (원)</label>
+          <input type="number" id="simBal" value="1500000" step="100000" min="0"></div>
+        <div class="field"><label for="simFloor">최소 안전잔액 (원)</label>
+          <input type="number" id="simFloor" value="300000" step="50000" min="0"></div>
+        <div class="field"><label for="simFixed">매달 고정비 (월세·보험 등)</label>
+          <input type="number" id="simFixed" value="800000" step="50000" min="0"></div>
+        <div class="field"><label for="simDay">고정비 빠지는 날</label>
+          <input type="number" id="simDay" value="25" min="1" max="28"></div>
+        <div class="field"><label for="simVar">하루 생활비 (원)</label>
+          <input type="number" id="simVar" value="30000" step="5000" min="0"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">수입원 <span class="label" style="font-weight:400">· 최대 5개</span></div>
+      <div id="simSources"></div>
+      <button class="btn btn-outline btn-sm" id="simAddBtn" style="margin-top:10px">+ 수입원 추가</button>
+    </div>
+
+    <button class="btn btn-primary" id="simRunBtn" style="width:100%;margin-top:16px">45일 예측 계산하기</button>
+    <div id="simResult" style="margin-top:20px"></div>
   </div>
 </div>
 
@@ -300,7 +337,7 @@
           <div id="sources"></div>
         </div>
         <div class="card">
-          <div class="card-title">Gig Score</div>
+          <div class="card-title">Gig Score <span class="label" style="font-weight:400">· 관리 성실도 지표</span></div>
           <div id="gig"><div class="skeleton">불러오는 중…</div></div>
         </div>
       </div>
@@ -428,6 +465,7 @@
 
   // ---------- 화면 전환 ----------
   function showLanding() {
+    el("viewSim").hidden = true;
     el("viewDash").hidden = true;
     el("viewLanding").hidden = false;
     el("backBtn").hidden = true;
@@ -435,12 +473,21 @@
     window.scrollTo(0, 0);
   }
   function showDash() {
+    el("viewSim").hidden = true;
     el("viewLanding").hidden = true;
     el("viewDash").hidden = false;
     el("backBtn").hidden = false;
     window.scrollTo(0, 0);
   }
   el("backBtn").addEventListener("click", showLanding);
+  el("tryMineBtn").addEventListener("click", showSim);
+  el("simAddBtn").addEventListener("click", function () {
+    if (simSources.length >= 5) return;
+    var next = SIM_PRESETS[simSources.length % SIM_PRESETS.length];
+    simSources.push(Object.assign({}, next));
+    renderSimSources();
+  });
+  el("simRunBtn").addEventListener("click", runSimulation);
 
   // ---------- 선택 화면 ----------
   function renderPersonaGrid() {
@@ -629,7 +676,7 @@
         '<span style="position:absolute;left:70%;top:-3px;width:2px;height:14px;background:var(--text-faint);border-radius:1px"></span>' +
       "</div>" +
       '<div class="label" style="margin-bottom:10px">눈금은 양호 기준선 700점</div>' + comp +
-      '<div class="muted-box" style="margin-top:12px">여러 플랫폼의 정산 이력을 신용 지표로 환산한 자체 점수입니다. ' +
+      '<div class="muted-box" style="margin-top:12px">여러 플랫폼의 정산 이력·지출 안정성·경비 인정률을 하나로 묶은 자체 지표입니다. ' +
       "금융기관의 신용점수가 아닙니다.</div>";
   }
 
@@ -685,6 +732,120 @@
         '<span class="num label">' + won(t.amount) + "</span>" +
         '<span class="pill ' + expenseTone(t.prob) + '" style="min-width:52px;justify-content:center">' + t.prob + "%</span></div>";
     }).join("") + "</div>";
+  }
+
+  // ---------- 직접 입력 시뮬레이터 ----------
+  //
+  // 준비된 인물을 구경만 하는 대신, 보는 사람이 자기 조건을 넣어 결과가 바뀌는 걸 확인할 수
+  // 있게 하는 화면입니다. 계산은 서버(POST /api/v1/simulate/cashflow)가 하고, 그리는 방식은
+  // 대시보드 차트와 같은 함수를 그대로 씁니다.
+  var SIM_PRESETS = [
+    { name: "배달", cycle_days: 7, amount: 280000, days_until_next: 3 },
+    { name: "프리랜서 용역", cycle_days: 14, amount: 1200000, days_until_next: 9 },
+    { name: "본업 급여", cycle_days: 30, amount: 2400000, days_until_next: 20 }
+  ];
+  var simSources = SIM_PRESETS.slice(0, 2).map(function (p) { return Object.assign({}, p); });
+  var simScenarioKey = "기본";
+  var simData = null;
+
+  function renderSimSources() {
+    el("simSources").innerHTML = simSources.map(function (s, i) {
+      return '<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr auto;gap:9px;align-items:end;margin-bottom:10px">' +
+        '<div class="field"><label>이름</label><input type="text" data-i="' + i + '" data-k="name" value="' + escapeHtml(s.name) + '"></div>' +
+        '<div class="field"><label>며칠마다</label><input type="number" data-i="' + i + '" data-k="cycle_days" value="' + s.cycle_days + '" min="1" max="90"></div>' +
+        '<div class="field"><label>1회 금액</label><input type="number" data-i="' + i + '" data-k="amount" value="' + s.amount + '" step="10000" min="0"></div>' +
+        '<div class="field"><label>다음까지</label><input type="number" data-i="' + i + '" data-k="days_until_next" value="' + s.days_until_next + '" min="0" max="90"></div>' +
+        '<button class="btn btn-outline btn-sm" data-del="' + i + '">삭제</button></div>';
+    }).join("") || '<div class="skeleton">수입원을 하나 이상 추가해 주세요.</div>';
+
+    Array.prototype.forEach.call(el("simSources").querySelectorAll("input"), function (inp) {
+      inp.addEventListener("input", function () {
+        var i = Number(inp.getAttribute("data-i")), k = inp.getAttribute("data-k");
+        simSources[i][k] = k === "name" ? inp.value : Number(inp.value);
+      });
+    });
+    Array.prototype.forEach.call(el("simSources").querySelectorAll("button[data-del]"), function (b) {
+      b.addEventListener("click", function () {
+        simSources.splice(Number(b.getAttribute("data-del")), 1);
+        renderSimSources();
+      });
+    });
+  }
+
+  function renderSimResult() {
+    if (!simData) return;
+    var pts = simData.scenarios[simScenarioKey] || simData.daily_balances;
+    var shortage = simData.shortage_dates[simScenarioKey];
+    var floor = simData.min_safety_balance;
+    var baseShort = simData.shortage_dates["기본"];
+
+    var head;
+    if (shortage) {
+      var d = shortage.slice(5).split("-");
+      var days = Math.round((new Date(shortage) - new Date(pts[0].date)) / 86400000);
+      head = '<div class="hero-line" style="font-size:24px;margin:0 0 14px">' +
+        '<b class="risk">' + Number(d[0]) + "월 " + Number(d[1]) + "일</b>, " + days +
+        "일 뒤에 잔고가 " + manwon(floor) + "원 아래로 떨어집니다</div>";
+    } else {
+      head = '<div class="hero-line" style="font-size:24px;margin:0 0 14px">앞으로 45일은 <b>잔고 걱정 없이</b> 지낼 수 있습니다</div>';
+    }
+
+    var tabs = ["기본", "입금지연", "수입감소"];
+    var labels = { "기본": "기본", "입금지연": "정산 10일 지연", "수입감소": "수입 30% 감소" };
+    var tabHtml = '<div class="tabs" id="simTabs" style="margin-bottom:12px">' + tabs.map(function (k) {
+      return '<button class="tab" data-k="' + k + '" aria-selected="' + (k === simScenarioKey) + '">' + labels[k] + "</button>";
+    }).join("") + "</div>";
+
+    var delta = "";
+    if (simScenarioKey !== "기본" && shortage && baseShort) {
+      var gap = Math.round((new Date(baseShort) - new Date(shortage)) / 86400000);
+      if (gap > 0) delta = '<span style="color:var(--danger);font-weight:700">기본 대비 ' + gap + "일 앞당겨짐</span>";
+    } else if (simScenarioKey !== "기본" && shortage && !baseShort) {
+      delta = '<span style="color:var(--danger);font-weight:700">기본에서는 없던 잔고 부족이 생깁니다</span>';
+    }
+
+    el("simResult").innerHTML = '<div class="card">' + head +
+      '<div style="display:flex;gap:30px;flex-wrap:wrap;margin-bottom:14px">' +
+        '<div><div class="label">월 예상 수입</div><div class="num" style="font-size:20px;font-weight:700">' +
+          won(simData.monthly_income_estimate) + "</div></div>" +
+        '<div><div class="label">월 예상 지출</div><div class="num" style="font-size:20px;font-weight:700">' +
+          won(simData.monthly_cost_estimate) + "</div></div>" +
+        '<div><div class="label">월 순증감</div><div class="num" style="font-size:20px;font-weight:700;color:' +
+          (simData.net_monthly >= 0 ? "var(--safe)" : "var(--danger)") + '">' +
+          (simData.net_monthly >= 0 ? "+" : "") + won(simData.net_monthly) + "</div></div></div>" +
+      tabHtml +
+      drawChart(pts, floor, shortage) +
+      '<div class="legend"><span><i style="background:#3182f6"></i>예상 잔액</span>' +
+        '<span><i style="background:#f04452"></i>최소 안전잔액</span>' + (delta ? "<span>" + delta + "</span>" : "") + "</div>" +
+      '<div class="muted-box" style="margin-top:14px">' + escapeHtml(simData.note) + "</div></div>";
+
+    Array.prototype.forEach.call(el("simTabs").querySelectorAll(".tab"), function (b) {
+      b.addEventListener("click", function () { simScenarioKey = b.getAttribute("data-k"); renderSimResult(); });
+    });
+  }
+
+  function runSimulation() {
+    var btn = el("simRunBtn");
+    btn.disabled = true; btn.textContent = "계산 중…";
+    send("POST", "/simulate/cashflow", {
+      current_balance: Number(el("simBal").value) || 0,
+      min_safety_balance: Number(el("simFloor").value) || 0,
+      fixed_monthly_cost: Number(el("simFixed").value) || 0,
+      fixed_cost_day: Number(el("simDay").value) || 25,
+      daily_variable_cost: Number(el("simVar").value) || 0,
+      sources: simSources
+    }).then(function (d) {
+      simData = d; simScenarioKey = "기본"; renderSimResult();
+    }).catch(function () {
+      el("simResult").innerHTML = '<div class="err">계산에 실패했습니다. 입력값을 확인해 주세요.</div>';
+    }).then(function () { btn.disabled = false; btn.textContent = "45일 예측 계산하기"; });
+  }
+
+  function showSim() {
+    el("viewLanding").hidden = true; el("viewDash").hidden = true;
+    el("viewSim").hidden = false; el("backBtn").hidden = false;
+    renderSimSources();
+    window.scrollTo(0, 0);
   }
 
   // ---------- 1단: 요약 ----------
