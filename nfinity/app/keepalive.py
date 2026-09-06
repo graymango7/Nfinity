@@ -72,6 +72,39 @@ async def _loop(url: str):
             except Exception as exc:
                 logger.warning("[keepalive] 데모 상태 복원 실패: %s", exc)
 
+            # 생성형 AI 결과 캐시가 비어 있으면 조용히 채워둡니다.
+            #
+            # 무료 Redis는 재시작 시 내용이 사라질 수 있고, Gemini 무료 할당량은 하루 단위로
+            # 소진·회복됩니다. 둘이 겹치면 심사위원이 열었을 때 AI 브리핑이 템플릿 문장으로
+            # 보일 수 있어서, 주기적으로 비어 있는 것만 한 건씩 미리 만들어 둡니다.
+            # 한 번에 하나만 호출해 할당량을 아끼고, 실패하면 다음 주기에 다시 시도합니다.
+            try:
+                await asyncio.to_thread(_warm_one_brief)
+            except Exception as exc:
+                logger.warning("[keepalive] 브리핑 예열 실패: %s", exc)
+
+
+def _warm_one_brief() -> None:
+    """캐시가 없는 데모 페르소나 브리핑을 하나만 생성해 캐시에 넣습니다."""
+    from app.database import SessionLocal
+    from app.demo_personas import DEMO_PERSONAS
+    from app.routers.brief import get_brief
+
+    db = SessionLocal()
+    try:
+        for persona in DEMO_PERSONAS:
+            try:
+                result = get_brief(persona["user_id"], db=db)
+            except Exception:
+                continue
+            if result.get("source") == "gemini":
+                continue  # 이미 캐시에 있음
+            # 아직 템플릿이면 방금 호출에서 캐시가 채워졌을 수도 있으니 여기서 멈춥니다.
+            logger.info("[keepalive] %s 브리핑 예열 시도 (source=%s)", persona["name"], result.get("source"))
+            return
+    finally:
+        db.close()
+
 
 def _fetch(url: str):
     with urllib.request.urlopen(url, timeout=30) as resp:
