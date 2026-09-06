@@ -269,15 +269,15 @@
       <div class="card-title">지금 상황</div>
       <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:6px">
         <div class="field"><label for="simBal">현재 잔액 (원)</label>
-          <input type="number" id="simBal" value="1500000" step="100000" min="0"></div>
+          <input type="number" id="simBal" value="1200000" step="100000" min="0"></div>
         <div class="field"><label for="simFloor">최소 안전잔액 (원)</label>
           <input type="number" id="simFloor" value="300000" step="50000" min="0"></div>
         <div class="field"><label for="simFixed">매달 고정비 (월세·보험 등)</label>
-          <input type="number" id="simFixed" value="800000" step="50000" min="0"></div>
+          <input type="number" id="simFixed" value="900000" step="50000" min="0"></div>
         <div class="field"><label for="simDay">고정비 빠지는 날</label>
           <input type="number" id="simDay" value="25" min="1" max="28"></div>
         <div class="field"><label for="simVar">하루 생활비 (원)</label>
-          <input type="number" id="simVar" value="30000" step="5000" min="0"></div>
+          <input type="number" id="simVar" value="35000" step="5000" min="0"></div>
       </div>
     </div>
 
@@ -744,7 +744,11 @@
     { name: "프리랜서 용역", cycle_days: 14, amount: 1200000, days_until_next: 9 },
     { name: "본업 급여", cycle_days: 30, amount: 2400000, days_until_next: 20 }
   ];
-  var simSources = SIM_PRESETS.slice(0, 2).map(function (p) { return Object.assign({}, p); });
+  // 기본값은 "배달 하나로 버티는" 조건입니다. 수입원을 둘 이상 넣으면 월 순증가로 돌아서
+  // 45일 안에는 부족이 생기지 않아, 처음 계산했을 때 이 기능이 무엇을 알려주는지가 드러나지
+  // 않습니다. 그래서 기본은 부족이 실제로 보이는 조건으로 두고, 사용자가 수입원을 더하면
+  // 부족 시점이 사라지는 변화를 직접 보게 했습니다.
+  var simSources = SIM_PRESETS.slice(0, 1).map(function (p) { return Object.assign({}, p); });
   var simScenarioKey = "기본";
   var simData = null;
 
