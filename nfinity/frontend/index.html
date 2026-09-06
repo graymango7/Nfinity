@@ -1,5 +1,5 @@
 <!--
-  Nfinity — 데스크톱 웹 (9/5 재작성, 9/5 2차: 2화면 구조로 분리)
+  SideGig — 데스크톱 웹 (9/5 재작성, 9/5 2차: 2화면 구조로 분리)
 
   화면 구성
     1) 사례 선택 화면 — 3명의 시연용 인물 중 하나를 고릅니다. 각 카드에 현재 현금흐름
@@ -13,7 +13,7 @@
   - 카드마다 독립적으로 로드/실패합니다. 한 API가 죽어도 나머지 화면은 그대로 뜹니다.
   - 모든 동적 텍스트는 escapeHtml을 거칩니다(값이 LLM 출력이 될 수 있는 필드가 있어서).
 -->
-<title>Nfinity — N잡러 현금흐름 관리</title>
+<title>SideGig — N잡러 현금흐름 관리</title>
 <link rel="stylesheet"
       href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
@@ -220,7 +220,7 @@
 
 <div class="topbar">
   <div class="topbar-inner">
-    <div class="brand">N<span>finity</span></div>
+    <div class="brand">Side<span>Gig</span></div>
     <div class="spacer"></div>
     <button class="ghost-btn" id="backBtn" hidden>← 다른 사례 보기</button>
   </div>
@@ -368,7 +368,7 @@
         <div class="card">
           <div class="card-title">이런 결제가 시도되면 어떻게 될까요?</div>
           <div class="label" style="margin-bottom:16px;line-height:1.6">
-            Nfinity는 결제가 일어나는 순간 규칙 7종과 이상탐지 AI로 위험도를 매겨
+            SideGig은 결제가 일어나는 순간 규칙 7종과 이상탐지 AI로 위험도를 매겨
             <b style="color:var(--text)">승인 · 본인확인 · 차단</b> 중 하나를 정합니다.
             아래 상황을 눌러 실제로 어떻게 판정하는지 확인해보세요.
           </div>
