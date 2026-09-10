@@ -6,8 +6,8 @@
 
 만들어지는 것 (docs/archive/):
   00_프로젝트_개요.pdf    표지 · 무엇을 만들었는지 · 결과 수치 · 개발 타임라인
-  01_기획서.pdf           제출본 (docs/기획서.html)
-  02_기능명세서.pdf       제출본 (docs/기능명세서.html)
+  01_기획서.pdf           실제 제출본 (archive/제출본_원본/ 에 두면 그대로 사용)
+  02_기능명세서.pdf       실제 제출본 (없으면 docs/*.html 로 대체 생성)
   03_시스템_설계.pdf      API 목록 · 데이터 모델 · 알고리즘 · 보안 조치
   04_개발기록.pdf         nfinity/README.md (개발 과정 전체 기록)
   05_소스코드.pdf         전체 소스 (줄 번호 포함)
@@ -18,6 +18,7 @@
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 from datetime import date
@@ -409,18 +410,31 @@ def build_verification():
 
 
 def copy_submission():
-    """제출 문서는 기존 HTML을 그대로 다시 PDF로 굽는다."""
-    for src, name in [("기획서.html", "01_기획서"), ("기능명세서.html", "02_기능명세서")]:
+    """제출 문서를 아카이브에 넣는다.
+
+    실제로 공모전에 낸 PDF가 archive/제출본_원본/ 에 있으면 그것을 그대로 쓴다 —
+    아카이브에는 '제출한 그 파일'이 남아야 하기 때문이다. 없을 때만 저장소의
+    HTML을 구워서 대체한다(팀원이 한글 파일로 최종본을 만든 경우 등).
+    """
+    originals = OUT / "제출본_원본"
+    for pattern, src, name in [("*기획서*.pdf", "기획서.html", "01_기획서"),
+                               ("*기능명세서*.pdf", "기능명세서.html", "02_기능명세서")]:
+        found = sorted(originals.glob(pattern), key=lambda f: f.stat().st_mtime) if originals.is_dir() else []
+        if found:
+            latest = found[-1]  # 같은 문서가 여러 판 있으면 가장 최근 것
+            shutil.copyfile(latest, OUT / f"{name}.pdf")
+            print(f"  복사: {name}.pdf  ← 제출본_원본/{latest.name}")
+            continue
         p = DOCS / src
         if not p.exists():
-            print(f"  건너뜀: {src} 없음")
+            print(f"  건너뜀: {name} — 제출본도 {src}도 없음")
             continue
         subprocess.run(
             [CHROME, "--headless", "--disable-gpu", "--no-pdf-header-footer",
              f"--print-to-pdf={OUT / (name + '.pdf')}", str(p)],
             capture_output=True,
         )
-        print(f"  생성: {name}.pdf")
+        print(f"  생성: {name}.pdf  ← {src} (제출본 없음)")
 
 
 if __name__ == "__main__":
