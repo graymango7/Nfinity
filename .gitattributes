@@ -1,0 +1,6 @@
+# GitHub 언어 통계에서 실행 코드가 아닌 파일을 제외한다.
+# design/ 은 디자인 캔버스 내보내기(편집기 코드와 이미지가 통째로 들어간 2.5MB HTML),
+# frontend/legacy/ 는 교체 전 화면, docs/ 는 제출 문서라서 서비스 코드 비중을 왜곡한다.
+nfinity/design/**          linguist-documentation
+nfinity/frontend/legacy/** linguist-vendored
+docs/**                    linguist-documentation
